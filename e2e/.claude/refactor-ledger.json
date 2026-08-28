@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "standardsVersion": "1.10.0+pw1.10.0",
+  "lastRunCommit": "7f5a231fbb6caf726ba81c85b38e5dea8f12d72a",
+  "files": {
+    "tests/fixtures/fixture.ts": {
+      "hash": "0080f782f65e258b6d12028614ef172929a99404",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": []
+    },
+    "tests/pages/api/api.ts": {
+      "hash": "f83fdb6af5223180c2233f9243d8df3a89245094",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": []
+    },
+    "tests/pages/login-page-class.ts": {
+      "hash": "7364fd824431812945bbc395b782cfe44f096a00",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": ["local-conformance"]
+    },
+    "tests/pages/mini-cart-class.ts": {
+      "hash": "e00bf64cc5cc0f9c13b2ec7db6e1a4205e2af9be",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": ["local-conformance"]
+    },
+    "tests/pages/products-page-class.ts": {
+      "hash": "464da8afeb847997affde0e03fbd9d4850216322",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": ["local-conformance"]
+    },
+    "tests/specs/api/api.spec.ts": {
+      "hash": "1c5dc0ec6ee0fc975ddec912caf3e5e2e75448cd",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": []
+    },
+    "tests/specs/login-using-storage-state.spec.ts": {
+      "hash": "23b16eb8ff112eb770c44a6fdd8c92a6d8265d56",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": []
+    },
+    "tests/specs/login-without-storage-states.spec.ts": {
+      "hash": "af7554710b0d081427d5212990579700c8918498",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": []
+    },
+    "tests/specs/parameterised-tests.spec.ts": {
+      "hash": "ef08e212724c56f68c8c03431690e544001c269d",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": ["local-conformance"]
+    },
+    "tests/testdata/sauce-demo-test-data.ts": {
+      "hash": "148520769561544dc1e6cd5b31cd947b9c506e24",
+      "lastRefactoredAt": "2026-06-17T00:00:00.000Z",
+      "standardsVersion": "1.10.0+pw1.10.0",
+      "categoriesCleared": ["local-conformance"]
+    }
+  }
+}

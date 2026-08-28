@@ -1,0 +1,4 @@
+if git diff --cached --name-only --diff-filter=ACMR | grep -qE '^(tests|test-setup)/'; then
+  npm run precommit || exit 1
+fi
+

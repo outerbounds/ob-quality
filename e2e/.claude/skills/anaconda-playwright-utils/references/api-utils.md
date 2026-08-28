@@ -1,0 +1,350 @@
+# API Utils Reference
+
+Source: `src/playwright-utils/utils/api-utils.ts`
+
+## Overview
+
+API utils provide simplified HTTP request functions wrapping Playwright's `APIRequestContext`. These functions use the page's request context, so they automatically share cookies, authentication tokens, and storage with the browser session — making them ideal for testing API interactions alongside UI tests.
+
+All request functions return Playwright's `APIResponse` object, which provides methods for checking status, parsing body, and accessing headers.
+
+## Request Context
+
+### `getAPIRequestContext(): APIRequestContext`
+
+Returns the `APIRequestContext` from the current page. Equivalent to `page.request` in Playwright.
+
+**Usage:**
+
+```typescript
+const context = getAPIRequestContext();
+// Use for advanced scenarios not covered by the helper functions
+// (e.g., complex retry logic, custom interceptors)
+```
+
+## HTTP Request Functions
+
+All request functions return `Promise<APIResponse>`. Options are passed directly to Playwright's native APIRequestContext methods.
+
+### `getRequest(url, options?): Promise<APIResponse>`
+
+Performs an HTTP GET request.
+
+**Example:**
+
+```typescript
+const response = await getRequest('https://api.example.com/users/1');
+await expect(response, { message: 'GET /users/1 should return a 2xx status' }).toBeOK();
+
+const user = await response.json();
+```
+
+### `postRequest(url, options?): Promise<APIResponse>`
+
+Performs an HTTP POST request.
+
+**Example:**
+
+```typescript
+const response = await postRequest('https://api.example.com/users', {
+  data: {
+    name: 'John Doe',
+    email: 'john@example.com',
+  },
+});
+
+expect(response.status(), { message: 'POST should return 201 Created' }).toBe(201);
+const newUser = await response.json();
+```
+
+### `putRequest(url, options?): Promise<APIResponse>`
+
+Performs an HTTP PUT request (replace entire resource).
+
+**Example:**
+
+```typescript
+const response = await putRequest('https://api.example.com/users/1', {
+  data: {
+    name: 'Jane Doe',
+    email: 'jane@example.com',
+  },
+});
+```
+
+### `patchRequest(url, options?): Promise<APIResponse>`
+
+Performs an HTTP PATCH request (partial update).
+
+**Example:**
+
+```typescript
+const response = await patchRequest('https://api.example.com/users/1', {
+  data: { email: 'newemail@example.com' },
+});
+```
+
+### `deleteRequest(url, options?): Promise<APIResponse>`
+
+Performs an HTTP DELETE request.
+
+**Example:**
+
+```typescript
+const response = await deleteRequest('https://api.example.com/users/1');
+expect(response.status(), { message: 'DELETE should return 204 No Content' }).toBe(204);
+```
+
+## Response Assertion Patterns
+
+Choose the right pattern based on what you need to verify:
+
+- **`await expect(response, { message: '...' }).toBeOK()`** — verifies any 2xx status; use for most GET/POST/PUT/PATCH calls
+- **`expect(response.status(), { message: '...' }).toBe(201)`** — use when the exact status code matters (e.g., 201 Created vs 200 OK, 204 No Content vs 200 OK)
+
+## Response Handling
+
+All request functions return Playwright's `APIResponse` object with the following methods:
+
+```typescript
+const response = await getRequest(url);
+
+// Status info
+response.ok(); // boolean: true if status 200-299
+response.status(); // number: HTTP status code
+
+// Body parsing
+await response.json(); // Parse body as JSON object
+await response.text(); // Parse body as plain text
+await response.body(); // Get body as Buffer
+
+// Headers
+response.headers(); // Get headers as object
+response.headersArray(); // Get headers as array of [name, value] pairs
+```
+
+## Common Patterns
+
+### Response Status Validation
+
+```typescript
+import { expect, getRequest } from '@anaconda/playwright-utils';
+
+const response = await getRequest('https://api.example.com/users/1');
+
+// Best practice: Use await expect() for async response validation
+await expect(response, { message: 'GET /users/1 should return a 2xx status' }).toBeOK();
+
+const data = await response.json();
+expect(data, { message: 'User payload should include an id' }).toHaveProperty('id');
+expect(data, { message: 'User payload should include a name' }).toHaveProperty('name');
+```
+
+Alternative error handling pattern:
+
+```typescript
+const response = await getRequest('/api/users/1');
+
+if (!response.ok()) {
+  const error = await response.text();
+  throw new Error(`API error: ${response.status()} - ${error}`);
+}
+
+const data = await response.json();
+```
+
+### Authentication Headers
+
+```typescript
+const token = 'your-bearer-token';
+
+const response = await getRequest('/api/protected', {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+```
+
+### Request Body Formats
+
+```typescript
+import { createReadStream } from 'fs';
+
+// JSON body (default)
+await postRequest('/api/users', {
+  data: { name: 'John', age: 30 },
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Form data
+await postRequest('/api/form', {
+  form: {
+    username: 'john',
+    password: 'secret',
+  },
+});
+
+// Multipart form (file upload)
+await postRequest('/api/upload', {
+  multipart: {
+    file: createReadStream('document.pdf'),
+    description: 'Important document',
+    category: 'reports',
+  },
+});
+```
+
+### Response Validation Pattern (Page Object)
+
+```typescript
+// tests/pages/api/items-api.ts
+import { expect, getRequest } from '@anaconda/playwright-utils';
+
+export class ItemsAPI {
+  private readonly baseURL = 'https://api.example.com';
+
+  async verifyItemsExist(): Promise<void> {
+    const response = await getRequest(`${this.baseURL}/items`);
+    await expect(response, { message: 'GET /items should return a 2xx status' }).toBeOK();
+
+    const items = await response.json();
+    expect(Array.isArray(items), { message: 'Items response should be an array' }).toBeTruthy();
+    expect(items.length, { message: 'Items list should not be empty' }).toBeGreaterThan(0);
+    expect(items[0], { message: 'Each item should have an id field' }).toHaveProperty('id');
+    expect(items[0], { message: 'Each item should have a name field' }).toHaveProperty('name');
+  }
+}
+```
+
+Fixture and spec:
+
+```typescript
+// tests/fixtures/fixture.ts
+import { test as base } from '@anaconda/playwright-utils';
+import { ItemsAPI } from '@pages/api/items-api';
+
+export const test = base.extend<{ itemsAPI: ItemsAPI }>({
+  itemsAPI: async ({}, use) => {
+    await use(new ItemsAPI());
+  },
+});
+
+// spec excerpt
+import { test } from '@fixture';
+
+test('verify items API returns data', async ({ itemsAPI }) => {
+  await itemsAPI.verifyItemsExist();
+});
+```
+
+### Error Handling
+
+```typescript
+import { logger, postRequest } from '@anaconda/playwright-utils';
+
+const response = await postRequest('/api/users', {
+  data: { email: 'invalid' },
+});
+
+if (response.status() === 400) {
+  const errors = await response.json();
+  logger.warn(`Validation errors returned: ${JSON.stringify(errors)}`);
+}
+```
+
+## Integration with Page Objects
+
+API utils work well with page object patterns for separating API testing concerns from UI. Always use `async/await` and import from proper modules:
+
+```typescript
+// tests/pages/api/user-api.ts
+import { deleteRequest, expect, getRequest, postRequest } from '@anaconda/playwright-utils';
+
+export class UserAPI {
+  private readonly baseURL = 'https://api.example.com';
+
+  async getUser(id: number) {
+    const response = await getRequest(`${this.baseURL}/users/${id}`);
+    await expect(response, { message: `GET /users/${id} should return a 2xx status` }).toBeOK();
+    return response.json();
+  }
+
+  async createUser(userData: Record<string, unknown>) {
+    const response = await postRequest(`${this.baseURL}/users`, {
+      data: userData,
+    });
+    expect(response.status(), { message: 'POST /users should return 201 Created' }).toBe(201);
+    return response.json();
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    const response = await deleteRequest(`${this.baseURL}/users/${id}`);
+    expect(response.status(), { message: `DELETE /users/${id} should return 204 No Content` }).toBe(204);
+  }
+
+  async verifyUserExists(email: string) {
+    const response = await getRequest(`${this.baseURL}/users?email=${email}`);
+    await expect(response, { message: 'GET /users by email should return a 2xx status' }).toBeOK();
+    const users = await response.json();
+    expect(Array.isArray(users), { message: 'Users response should be an array' }).toBeTruthy();
+    expect(users.length, { message: `At least one user with email ${email} should exist` }).toBeGreaterThan(0);
+  }
+}
+```
+
+**Usage in specs:**
+
+```typescript
+import { test } from '@fixture';
+import { testUsers } from '@testdata/<module>'; // NOTE: replace <module> with your project testdata module (under tests/testdata/)
+
+test.describe('User API @smoke', () => {
+  test('should create and verify user', async ({ userAPI, userPage }) => {
+    // Create user via API — userAPI is injected by the fixture; test data lives in tests/testdata/
+    const newUser = await userAPI.createUser(testUsers.validUser);
+
+    // Verify in UI via page object — no raw utility calls in specs
+    await userPage.verifyUserProfile(newUser.id, testUsers.validUser.name);
+
+    // Cleanup via API
+    await userAPI.deleteUser(newUser.id);
+  });
+});
+```
+
+## Sharing Cookies and Auth with Browser
+
+API requests automatically use the same request context as the browser, so cookies and authentication persist:
+
+```typescript
+// tests/pages/auth-api-page.ts
+import { clickAndNavigate, expect, fill, getRequest, gotoURL } from '@anaconda/playwright-utils';
+
+export class AuthAPIPage {
+  async loginAndVerifyProfile(): Promise<void> {
+    // Login in UI — setPage is handled automatically by the fixture
+    await gotoURL('https://example.com/login');
+    await fill('#username', 'user');
+    await fill('#password', 'pass');
+    await clickAndNavigate('#login-button');
+
+    // API requests now include auth cookies automatically
+    const response = await getRequest('https://api.example.com/profile');
+    await expect(response, { message: 'Profile request should succeed with shared auth cookies' }).toBeOK();
+  }
+}
+```
+
+## Option Types
+
+Options are typed as Playwright's native API request options:
+
+```typescript
+type GetRequestOptions = Parameters<APIRequestContext['get']>[1];
+type PostRequestOptions = Parameters<APIRequestContext['post']>[1];
+type PutRequestOptions = Parameters<APIRequestContext['put']>[1];
+type PatchRequestOptions = Parameters<APIRequestContext['patch']>[1];
+type DeleteRequestOptions = Parameters<APIRequestContext['delete']>[1];
+```
+
+See [Playwright APIRequestContext documentation](https://playwright.dev/docs/api/class-apirequestcontext) for complete option details including timeout, headers, auth, retry logic, and more.

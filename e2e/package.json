@@ -1,0 +1,56 @@
+{
+  "name": "your-project-name",
+  "version": "1.0.0",
+  "description": "your-project-description",
+  "keywords": [
+    "playwright",
+    "typescript",
+    "testing",
+    "framework",
+    "template"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "devDependencies": {
+    "@anaconda/playwright-utils": "1.17.1"
+  },
+  "scripts": {
+    "validate": "npm run validate:architecture && tsc --noEmit",
+    "validate:architecture": "node scripts/validate-test-architecture.mjs",
+    "ready:install": "rimraf dist node_modules && npm i --ignore-scripts && npx playwright install chromium",
+    "ready:verify": "npm audit --audit-level=high && npm run validate && npm run test",
+    "ready": "npm run ready:install && npm run ready:verify",
+    "test": "playwright test",
+    "test:chromium": "playwright test --retries 0 --project=chromiumheadless",
+    "test:chromium-headed": "playwright test -j 1 --retries 0 --headed --project=chromium",
+    "test:functional": "playwright test --project=chromium -g '@functional'",
+    "test:smoke": "playwright test --project=chromiumheadless -g '@smoke'",
+    "local": "playwright test -j 1 --retries 0 --headed --project=chromium",
+    "test:reg": "playwright test --project=chromiumheadless --grep-invert '@fail'",
+    "report": "playwright show-report playwright-report",
+    "ui": "playwright test --project=chromiumheadless --ui-port 0",
+    "trace": "playwright show-trace --port 0",
+    "lint": "cross-env eslint 'tests/**/*.ts' 'test-setup/**/*.ts' 'playwright.config.ts'",
+    "lint:fix": "cross-env eslint 'tests/**/*.ts' 'test-setup/**/*.ts' 'playwright.config.ts' --fix",
+    "prepare": "husky",
+    "format": "cross-env prettier --write --no-error-on-unmatched-pattern 'tests/**/*.ts' 'test-setup/**/*.ts' 'playwright.config.ts' '**/*.json' '**/*.md' '!package-lock.json' '!dist/**/*' '!build/**/*'",
+    "postinstall": "playwright install chromium",
+    "ncu:check": "npx npm-check-updates",
+    "ncu:update": "npx npm-check-updates -u",
+    "check:code-quality": "playwright-utils-check-code-quality",
+    "check:code-quality:staged": "playwright-utils-check-code-quality --staged",
+    "quality:full": "playwright-utils-quality-full",
+    "quality:report": "playwright-utils-full-quality-report",
+    "precommit": "playwright-utils-precommit"
+  },
+  "lint-staged": {
+    "**/*.{json,md,ts}": [
+      "cross-env prettier --write"
+    ],
+    "**/*.ts": [
+      "cross-env eslint --fix",
+      "cross-env eslint"
+    ]
+  }
+}

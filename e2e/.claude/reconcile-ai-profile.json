@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 2,
+  "name": "OB Quality Playwright QA AI reconciliation profile",
+  "packageName": "@anaconda/playwright-utils",
+  "keepLocalCommand": "npx anaconda-pw-setup --keep-local",
+  "overwriteCommand": "npx anaconda-pw-setup --overwrite-all",
+  "stagingRule": "After the keep-local pass, stage every in-scope AI file that shows any git status (dirty or untracked) as the recovery baseline; skip clean committed files (HEAD is their baseline). Never run the overwrite pass without this staged baseline.",
+  "historyDirectory": ".claude/reconcile-ai-history",
+  "projectSkill": {
+    "name": "ob-quality",
+    "path": ".claude/skills/ob-quality/SKILL.md",
+    "repoStructureReference": ".claude/skills/ob-quality/references/repo-structure.md",
+    "planningContextReference": ".claude/skills/ob-quality/references/planning-context.md"
+  },
+  "commonSkillDirectories": ["anaconda-playwright-utils", "playwright-cli", "qa-automation-quality"],
+  "canonicalFacts": {
+    "modelFixtureAlias": "@models-fixture",
+    "modelFixturePath": "tests/fixtures/models/fixture.ts",
+    "packageFixtureAlias": "@packages-fixture",
+    "packageFixturePath": "tests/fixtures/packages/fixture.ts",
+    "pageAlias": "@pages/*",
+    "testDataAlias": "@testdata/*",
+    "configAlias": "@playwright-config",
+    "testIdAttribute": "data-qa-id"
+  },
+  "projectOwnedPaths": [
+    ".claude/reconcile-ai-profile.json",
+    ".claude/settings.json",
+    ".claude/skills/ob-quality/**",
+    "scripts/validate-test-architecture.mjs",
+    "tests/**",
+    "package.json",
+    "playwright.config.ts",
+    "tsconfig.json"
+  ],
+  "projectFacingAiFiles": ["CLAUDE.md", "AGENTS.md", ".claude/commands/*.md", ".cursor/rules/*.mdc"],
+  "libraryOwnedAiFiles": [
+    ".claude/skills/anaconda-playwright-utils/**",
+    ".claude/skills/playwright-cli/**",
+    ".claude/skills/qa-automation-quality/**",
+    ".claude/agents/**"
+  ],
+  "preserveRules": [
+    "For project-facing docs and commands, keep your project's real path aliases and fixture paths over the library's generic @fixture / tests/fixtures/fixture.ts examples.",
+    "Keep any project-added pointers (for example a /pr-review usage line) in AGENTS.md and CLAUDE.md — upstream overwrites can drop them.",
+    "Do not turn generic library skill or agent docs into project-only docs; keep them library-generic."
+  ],
+  "forbiddenProjectFacingReplacements": [],
+  "exampleFiles": {
+    "modelFixture": "tests/fixtures/models/fixture.ts",
+    "packageFixture": "tests/fixtures/packages/fixture.ts",
+    "modelSpecDirectory": "tests/specs/models",
+    "packageSpecDirectory": "tests/specs/packages"
+  },
+  "verification": {
+    "formatCommand": "npx prettier --check .claude/skills/ob-quality/**/*.md package.json tsconfig.json scripts/validate-test-architecture.mjs",
+    "formatWriteCommand": "./node_modules/.bin/prettier --write <touched markdown files>",
+    "architectureCommand": "npm run validate:architecture",
+    "whitespaceCommand": "git diff --check"
+  }
+}

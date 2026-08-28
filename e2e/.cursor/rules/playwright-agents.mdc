@@ -1,0 +1,38 @@
+---
+description: Playwright test agent workflows for planning, generating, and healing tests
+globs: ['**/*.spec.ts', '**/*.test.ts', 'tests/test-plans/**', 'tests/**']
+---
+
+# Playwright Test Agent Workflows
+
+When working on Playwright tests you **must**:
+
+1. **Use `playwright-cli`** to verify flows — run `playwright-cli open <url>`, `playwright-cli snapshot`, then interact (click, fill) to capture real selectors. Never guess selectors.
+2. **Discover locators before writing** — `.claude/skills/playwright-cli/references/element-attributes.md` § Step 1 **core eval per ref** → § Step 2 rules → § Step 3 verify. Never copy CLI `getByRole` when core output supports tier 1–6. `dupCount > 1` → anchor priority (same locator for visibility and actions); per-ref eval in homogeneous sections — see `.claude/agents/references/planner-anti-patterns.md` § Duplicate test-id detection and § Representative scoping anti-pattern. `onHost: true` → component-host chain. Never document-wide `a[href="…"]` or bare role/text when a specific instance is required — see `.claude/skills/anaconda-playwright-utils/references/locators.md` § Tile and card navigation links.
+3. **Follow the locator strategy** in `.claude/skills/anaconda-playwright-utils/references/locators.md` when writing selectors. Load that file before planning or generating tests. Key rule: use `getLocatorByTestId('value')` for a single standalone `data-qa-id` element; use `getLocatorByTestId('parent').locator('[data-qa-id="child"]')` for one-ancestor scoping; use CSS compound strings or XPath for two or more ancestors or mixed attribute types.
+4. **Spec organization + granular page-object methods** — one `test.describe` + shared `beforeEach` per spec when setup is the same (no nested describes; separate spec files only when setup differs). Multi-item **same-page** cases: one `verify*` per item in the page object; spec calls each method listed in plan `**Spec calls:**` in one `test()`. **Click→navigate** to different destinations: one `test()` per plan `###` (planner creates separate cases; shared `beforeEach` navigates to the start URL); each test calls a `click*` action method then a matching `verify*` method — never a bundled `navigateTo*` that mixes both. **Route-template families** (search suggestion chips, filter pills — same path, query/slug varies): planner provides one representative nav `###` separate from visibility; generator must realize it as its own `test()` — do not fold chip navigation into the visibility test. No fat aggregators like `verifySocialMediaLinks()` (see generator § Spec Organization, § Page object method granularity rules, and `.claude/agents/references/planner-anti-patterns.md` § Navigation & interaction testing).
+5. **Use the right agent workflow** when the user asks to:
+   - Create a test plan or explore an app → **Test Planner**
+   - Generate a test from a plan or scenario → **Test Generator**
+   - Fix a failing test → **Test Healer**
+6. **Format code** — run `npx prettier --write` on any `.ts` or `.md` files you create or edit. Fix markdown label syntax only if formatting introduces visible backslash escapes; do not convert labels to em dashes just for formatting.
+7. **Find test files by context** — When the user doesn't specify a file path, search `tests/specs/` and `tests/pages/` for files matching the user's intent (by app name, feature keyword, or URL domain) before creating new files. Follow existing naming conventions.
+8. **Optimize token usage** — Default to `playwright-cli open <url>` plus `playwright-cli snapshot` for application pages; snapshots are accurate for JS-rendered UI and cheap enough for exploration. Use `WebFetch` only for known static content or quick URL checks. Users can say "use browser mode" to use `playwright-cli` for everything, or "use lite mode" to prefer `WebFetch` where content is static.
+9. **Respect the agent gates + project-skill discovery** (defined in the agent files — do not restate, follow):
+   - **Planner** runs blocking gates: Coverage Map (Gate 0) → Suite Budget + Candidate Ledger _including test data per case_ (Gate 1) → Pre-Write QA (Gate 2); it updates an existing plan for the area, never writes a parallel one.
+   - **Planner drives routing:** every plan case carries a `**Disposition:**` — `new-spec` (new file), `new-case in <spec>` (add a `test()` to an existing file), or `extend "<test() title>" in <spec>` (add to an existing `test()`). The generator obeys it; routing is not left to a file search.
+   - **Generator** runs anti-hallucination (every `@anaconda/playwright-utils` name must exist in `SKILL.md`), completeness (every case → realized once, honoring its disposition — count by disposition, not one `test()` per case), and a **Compile & Verify** gate (typecheck + lint + run the spec) before finishing. In Claude Code, when invoked with no plan it first spawns the **planner** subagent to produce one, then generates from it (inline right-sized derivation only when nested agents are unavailable — always the case in Cursor, so run the planner first there).
+   - **All three agents** discover the project skill _by exclusion_ (`.claude/skills/*/SKILL.md` minus the common skills), load it first, and follow its routing.
+   - **Test data** lives in `tests/testdata/`, referenced by key — never hardcoded in plans, specs, or page objects.
+
+## Agents
+
+1. **Test Planner** - Surveys existing coverage, explores the app, and creates or updates a right-sized test plan in `tests/test-plans/`
+2. **Test Generator** - Executes test plan steps in the browser and generates test files using `@anaconda/playwright-utils` (in Claude Code it has the planner write the plan first when none exists)
+3. **Test Healer** - Debugs and fixes failing Playwright tests
+
+## Agent Details
+
+@file .claude/agents/playwright-test-planner.md
+@file .claude/agents/playwright-test-generator.md
+@file .claude/agents/playwright-test-healer.md

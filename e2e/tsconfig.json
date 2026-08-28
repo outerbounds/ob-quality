@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    // Language and Environment
+    "target": "ES2022",
+
+    // Modules
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "paths": {
+      "@pages/*": ["./tests/pages/*"],
+      "@testdata/*": ["./tests/testdata/*"],
+      "@models-fixture": ["./tests/fixtures/models/fixture"],
+      "@packages-fixture": ["./tests/fixtures/packages/fixture"],
+      "@page-setup": ["./test-setup/page-setup"],
+      "tests/*": ["./tests/*"],
+      "@playwright-config": ["./playwright.config"]
+    }, // Sets up custom path mappings, enabling to import modules with convenient shorter paths
+
+    // Emit
+    "noEmit": true,
+
+    // Interop Constraints
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Type Checking
+    "strict": true, // Enables strictNullChecks, strictBindCallApply, strictFunctionTypes, strictPropertyInitialization, and more
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true, // Ensures that overriding methods in a subclass are marked with the 'override' keyword
+    "noImplicitReturns": true, // Ensures that all code paths in a function explicitly return a value
+
+    // Completeness
+    "skipLibCheck": true // Skip type checking of all declaration files (*.d.ts) for faster compilation times
+  },
+  "include": ["tests/**/*.ts", "test-setup/**/*.ts", "playwright.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

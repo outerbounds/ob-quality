@@ -1,0 +1,45 @@
+---
+description: Project-wide instructions and conventions
+globs: ['**/*']
+alwaysApply: true
+---
+
+# Project Conventions (Quick Reference)
+
+## Imports
+
+- Always import `test` from `@fixture`, never from `@playwright/test` or `@anaconda/playwright-utils` directly in specs
+- Use a single barrel import from `@anaconda/playwright-utils` for all utilities (click, fill, gotoURL, expect, logger, etc.)
+- Use TypeScript path aliases: `@pages/*`, `@testdata/*`, `@fixture`, `@playwright-config`
+
+## Page Object Model
+
+- All page logic lives in class-based page objects in `tests/pages/` — specs only call page object methods
+- All assertions live in `verify*` methods in page objects — never in spec files
+- All actions (click, fill, gotoURL) go in page object methods — never in spec files
+- **Separate actions from assertions** — action methods contain interactions only (no `verify*` calls, no inline `expect*`); `verify*` methods contain `expect*` only; specs call action then verify. Click→navigate URL checks use `click*` + `verify*` pairs — never bundled `navigateTo*` methods mixing `clickAndNavigate` with `expectPage*`. `gotoURL`-only setup methods are fine.
+- Register every new page object in `tests/fixtures/fixture.ts` via `baseTest.extend<>()`
+
+## Locator Priority (9 tiers, best → worst)
+
+`data-qa-id` (`getLocatorByTestId`) → other `data-*` CSS selectors → `id` → `name` → XPath/CSS (stable attrs) → role/text (tier 7, only when no stable attr) → structural XPath/CSS (tiers 8–9, last resort). **Discover locators** via `.claude/skills/playwright-cli/references/element-attributes.md` § Step 1 core eval **per ref** → § Step 2 rules → § Step 3 verify. **`dupCount > 1`:** anchor priority 1 → 2 → 3 — same scoped locator for visibility and actions; per-ref eval in homogeneous sections (see `.claude/agents/references/planner-anti-patterns.md` § Duplicate test-id detection). **Component host:** chain inner control when `onHost: true`. **Never** document-wide `a[href="…"]` or bare role/text when a specific instance is required — see `.claude/skills/anaconda-playwright-utils/references/locators.md` § Tile and card navigation links.
+
+## Key Rules
+
+- Use `clickAndNavigate()` for clicks that load a new page; `click()` for same-page interactions only
+- Never add `waitForPageLoadState` after `clickAndNavigate` — it's redundant
+- `.nth()` / `.first()` / `.last()` are last resort only — prefer ancestor-scoped selectors; add a comment if you must use one
+- Every assertion must include a descriptive error message as the last argument
+- Never use `console.log()` — use `logger` from `@anaconda/playwright-utils` in page objects only
+- Store test data in `tests/testdata/` and import it — never hardcode inline in specs
+- Wrap all tests in a `test.describe` block with a tag (`@smoke`, `@reg`)
+
+## Review Rubric
+
+- When reviewing code, use root `CLAUDE.md` as the installed project rubric.
+- If `.claude/commands/pr-review.md` is installed, follow that command's review workflow and read the reference files it names.
+- Treat prior PR review comments and summaries as stale until re-verified against the current checked-out files.
+
+## Full Reference
+
+@file CLAUDE.md

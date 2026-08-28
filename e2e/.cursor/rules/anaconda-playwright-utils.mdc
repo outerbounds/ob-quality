@@ -1,0 +1,56 @@
+---
+description: Use @anaconda/playwright-utils for Playwright tests. Follow locator strategy (data-qa-id, stable data attributes, role, label). Use with playwright-cli to verify flows.
+globs: ['**/*.spec.ts', '**/*.test.ts', 'tests/**']
+---
+
+# @anaconda/playwright-utils
+
+Playwright TypeScript utility library with simplified helper functions for browser automation.
+
+## Quick Reference
+
+- **Must call `setPage(page)` before using any utility** — the `@fixture` import handles this automatically
+- Functions accept `string | Locator` as input
+- Import from main package: `import { click, expectElementToBeVisible, fill, logger } from '@anaconda/playwright-utils';`
+- **`logger`** — Winston-based logger, available from the same import. Use only in page objects for informational messages. Never use `console.log()` anywhere in tests.
+
+## Locator Priority (9 tiers, best → worst)
+
+| Tier | Type                                      | Example                                                                                          |
+| ---- | ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 1    | `data-qa-id` (configured testIdAttribute) | `getLocatorByTestId('submit-btn')` — **never** raw CSS `[data-qa-id="..."]` for a single element |
+| 2    | Other `data-*` attributes                 | CSS selector like `[data-testid="submit"]` or `[data-product-id="..."]`                          |
+| 3    | `id`                                      | `'#username'`                                                                                    |
+| 4    | `name`                                    | `'[name="email"]'`                                                                               |
+| 5    | XPath with stable attrs                   | `'//button[@aria-label="Close"]'`                                                                |
+| 6    | CSS with stable attrs                     | `'button[aria-label="Close"]'`                                                                   |
+| 7    | Playwright built-ins                      | `getLocatorByRole(...)`, `getLocatorByText(...)` — only when no stable attr exists               |
+| 8–9  | Structural XPath/CSS                      | Last resort — fragile                                                                            |
+
+Full strategy and field conventions: @file .claude/skills/anaconda-playwright-utils/references/locators.md
+
+**Locator discovery:** Before writing locators, run `.claude/skills/playwright-cli/references/element-attributes.md` § Step 1 **core eval per ref** → § Step 2 rules → § Step 3 verify. When `dupCount > 1`, apply anchor priority — same scoped locator for visibility and actions (see `.claude/agents/references/planner-anti-patterns.md` § Duplicate test-id detection). When `onHost: true`, chain to the inner control. Never document-wide `a[href="…"]` or bare role/text when a specific instance is required — see `.claude/skills/anaconda-playwright-utils/references/locators.md` § Tile and card navigation links.
+
+## Anti-patterns — never do these
+
+Worked ❌/✅ examples: locator rules → locators.md (attached); structure and assertion rules → SKILL.md § Example Test and assertions.md (attached); the bundled-navigation anti-pattern → `.claude/agents/references/planner-anti-patterns.md` § Navigation & interaction testing. Do not restate them here.
+
+- Never keep a CLI role/text locator when the snapshot shows a stable attribute — upgrade to `getLocatorByTestId` / tier 1–6.
+- Never raw CSS for a single `data-qa-id` element — always `getLocatorByTestId`; non-configured `data-*` attributes (e.g. `data-testid`) use CSS, never `getLocatorByTestId`.
+- `.nth()` / `.first()` / `.last()` are last resort only — ancestor scoping first (one ancestor → `getLocatorByTestId` chaining; two or more → CSS compound); comment any unavoidable index.
+- Every assertion includes a descriptive message as the last argument.
+- Never `waitForPageLoadState` after `clickAndNavigate` — it already waits for `framenavigated`, load state, and element staleness.
+- Never `console.log` — use `logger` from `@anaconda/playwright-utils`, in page objects only.
+- No assertions or utility calls in spec files — specs call page-object methods only (plus `assertAllSoftAssertions(test.info())` immediately after a soft-assertion method).
+- Never bundle `clickAndNavigate` with `expectPage*` in one method — separate `click*` action + `verify*` assertion; `gotoURL`-only setup methods are fine.
+- No inline test data in specs — import from `@testdata/*`.
+
+## Full API Documentation
+
+@file .claude/skills/anaconda-playwright-utils/SKILL.md
+@file .claude/skills/anaconda-playwright-utils/references/actions.md
+@file .claude/skills/anaconda-playwright-utils/references/assertions.md
+@file .claude/skills/anaconda-playwright-utils/references/locators.md
+@file .claude/skills/anaconda-playwright-utils/references/element-utils.md
+@file .claude/skills/anaconda-playwright-utils/references/api-utils.md
+@file .claude/skills/anaconda-playwright-utils/references/page-utils.md
