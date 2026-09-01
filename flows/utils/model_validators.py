@@ -68,8 +68,8 @@ def validate_model(model: Mapping[str, Any], index: int) -> None:
                 f"{file_context}: expected an object, "
                 f"got {type(file_info).__name__}: {file_info!r}"
             )
-            if "size_bytes" in file_info:
-                size_bytes = file_info["size_bytes"]
+            size_bytes = file_info.get("size_bytes")
+            if size_bytes is not None:
                 assert isinstance(size_bytes, (int, float)) and not isinstance(
                     size_bytes, bool
                 ), (

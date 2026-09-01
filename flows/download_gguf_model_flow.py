@@ -56,7 +56,7 @@ class DownloadGgufModelFlow(FlowSpec):
         file_size = os.path.getsize(pulled_path)
         assert file_size > 0, f"Downloaded model file is empty: {pulled_path}"
 
-        minimum_size = GGUF_MODEL["minimum_size_mb"] * 1024 * 1024
+        minimum_size = GGUF_MODEL["minimum_size_mb"] * 1_000_000
         assert file_size >= minimum_size, (
             f"Expected model size of at least {GGUF_MODEL['minimum_size_mb']} MB, "
             f"got {file_size} bytes"

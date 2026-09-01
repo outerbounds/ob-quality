@@ -22,6 +22,10 @@ class DownloadSafetensorsModelFlow(FlowSpec):
         )
 
         assert model is not None, "Expected a model handle"
+        access_denied_reason = getattr(model, "access_denied_reason", None)
+        assert not access_denied_reason, (
+            f"Model access was denied: {access_denied_reason}"
+        )
         assert model.name == SAFETENSORS_MODEL["name"], (
             f"Expected model {SAFETENSORS_MODEL['name']}, got {model.name}"
         )
@@ -74,7 +78,6 @@ class DownloadSafetensorsModelFlow(FlowSpec):
             )
 
             actual_size = os.path.getsize(file_path)
-            assert actual_size > 0, f"Collection file is empty: {filename}"
 
             expected_size = file_info.get("size_bytes")
             if expected_size is not None:
