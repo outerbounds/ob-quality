@@ -81,10 +81,21 @@ class DownloadSafetensorsModelFlow(FlowSpec):
 
             expected_size = file_info.get("size_bytes")
             if expected_size is not None:
-                assert actual_size == expected_size, (
-                    f"Size mismatch for {filename}: "
-                    f"expected {expected_size}, got {actual_size}"
+                assert isinstance(expected_size, int) and not isinstance(
+                    expected_size, bool
+                ), (
+                    f"Expected size_bytes for {filename} to be an integer, "
+                    f"got {type(expected_size).__name__}: {expected_size!r}"
                 )
+                assert expected_size >= 0, (
+                    f"Expected size_bytes for {filename} to be non-negative, "
+                    f"got {expected_size}"
+                )
+                if expected_size > 0:
+                    assert actual_size == expected_size, (
+                        f"Size mismatch for {filename}: "
+                        f"expected {expected_size}, got {actual_size}"
+                    )
 
             filenames.append(filename)
             total_size += actual_size
