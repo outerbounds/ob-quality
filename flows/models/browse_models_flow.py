@@ -1,7 +1,7 @@
 """Browse models in the catalog.
 
 Run with:
-    python flows/models/browse_models_flow.py --environment=fast-bakery run --with kubernetes
+    python models/browse_models_flow.py --environment=fast-bakery run --with kubernetes
 """
 
 from metaflow import FlowSpec, anaconda_models, step

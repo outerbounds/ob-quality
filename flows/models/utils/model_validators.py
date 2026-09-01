@@ -1,6 +1,7 @@
 """Reusable validation for model catalog metadata."""
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 
 def validate_non_empty_string(value: Any, field_name: str, context: str) -> None:
