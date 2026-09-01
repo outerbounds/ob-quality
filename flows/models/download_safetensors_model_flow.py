@@ -1,7 +1,7 @@
 """Download and validate a Safetensors collection from the catalog.
 
 Run with:
-    python flows/download_safetensors_model_flow.py --environment=fast-bakery run --with kubernetes
+    python flows/models/download_safetensors_model_flow.py --environment=fast-bakery run --with kubernetes
 """
 
 import os

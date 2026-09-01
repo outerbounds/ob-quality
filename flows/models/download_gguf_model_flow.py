@@ -1,7 +1,7 @@
 """Download and validate a GGUF model from the catalog.
 
 Run with:
-    python flows/download_gguf_model_flow.py --environment=fast-bakery run --with kubernetes
+    python flows/models/download_gguf_model_flow.py --environment=fast-bakery run --with kubernetes
 """
 
 import os
@@ -25,8 +25,9 @@ class DownloadGgufModelFlow(FlowSpec):
         assert model.name == GGUF_MODEL["name"], (
             f"Expected model {GGUF_MODEL['name']}, got {model.name}"
         )
-        assert not hasattr(model, "access_denied_reason"), (
-            f"Model access was denied: {model.name}"
+        access_denied_reason = getattr(model, "access_denied_reason", None)
+        assert not access_denied_reason, (
+            f"Model access was denied: {access_denied_reason}"
         )
         assert model.format == GGUF_MODEL["format"], (
             f"Expected format {GGUF_MODEL['format']}, got {model.format}"

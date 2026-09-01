@@ -1,10 +1,11 @@
 # Meta Flows
 
-## Anaconda Models flows
+## Structure
 
-The Python files in this directory are independent Metaflow flows that exercise
-Anaconda Models functionality on an Outerbounds cluster. Each flow validates a
-focused scenario and can be run independently.
+Flows are organized by product domain. Each domain directory contains
+independent Metaflow flows and their supporting test data and utilities. Each
+flow validates a focused scenario and can be run independently on an
+Outerbounds cluster.
 
 ### Setup
 
@@ -28,7 +29,7 @@ a flow. Remote task pods must receive `OBP_API_SERVER`, `OBP_PERIMETER`, and
 From the `flows` directory, run any flow with:
 
 ```bash
-python <flow_file>.py --environment=fast-bakery run --with kubernetes
+python <domain>/<flow_file>.py --environment=fast-bakery run --with kubernetes
 ```
 
 These are real-cluster E2E flows. They interact with remote services and may
