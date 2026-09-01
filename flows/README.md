@@ -1,9 +1,10 @@
 # Meta Flows
 
-## Anaconda Models flow
+## Structure
 
-`test_ac_models_flow.py` exercises model discovery, a GGUF model download, a
-safetensors collection download, and model access-policy enforcement on an
+Flows are organized by product domain. Each domain directory contains
+independent Metaflow flows and their supporting test data and utilities. Each
+flow validates a focused scenario and can be run independently on an
 Outerbounds cluster.
 
 ### Setup
@@ -20,18 +21,16 @@ python -m pip install -r requirements.txt
 ```
 
 Configure a Metaflow profile for the target Outerbounds cluster before running
-the flow. Remote task pods must receive `OBP_API_SERVER`, `OBP_PERIMETER`, and
+a flow. Remote task pods must receive `OBP_API_SERVER`, `OBP_PERIMETER`, and
 `METAFLOW_SERVICE_HEADERS`; the platform normally injects these values.
-
-The final policy assertion expects the target perimeter to deny access to
-`Llama-3.2-1B` (the source flow uses the `dev-valay` policy that denies all
-`Llama*` models).
 
 ### Run
 
+From the `flows` directory, run any flow with:
+
 ```bash
-python test_ac_models_flow.py --environment=fast-bakery run --with kubernetes
+python <domain>/<flow_file>.py --environment=fast-bakery run --with kubernetes
 ```
 
-This is a real-cluster E2E flow. It downloads model artifacts remotely and
-cannot complete against Metaflow's local runtime.
+These are real-cluster E2E flows. They interact with remote services and may
+download artifacts, so they cannot complete against Metaflow's local runtime.
