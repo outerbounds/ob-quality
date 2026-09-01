@@ -1,6 +1,6 @@
 """Download and validate a GGUF model from the catalog.
 
-Run with:
+Run from the flows directory with:
     python models/download_gguf_model_flow.py --environment=fast-bakery run --with kubernetes
 """
 

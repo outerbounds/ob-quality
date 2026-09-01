@@ -1,6 +1,6 @@
 """Browse models in the catalog.
 
-Run with:
+Run from the flows directory with:
     python models/browse_models_flow.py --environment=fast-bakery run --with kubernetes
 """
 
