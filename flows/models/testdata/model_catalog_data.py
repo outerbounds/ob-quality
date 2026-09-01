@@ -2,6 +2,8 @@
 
 BROWSE_LIMIT = 5
 
+# Selected because these models are available in the Anaconda Model Catalog,
+# relatively small, and suitable for E2E download testing.
 GGUF_MODEL = {
     "name": "Qwen2.5-0.5B",
     "format": "gguf",
