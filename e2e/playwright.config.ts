@@ -30,7 +30,6 @@ export default defineConfig({
   testDir: './tests',
   use: {
     ...AnacondaProjectDefaults,
-    userAgent: 'zendesk-bot',
     /* Records traces after each test failure for debugging purposes. */
     trace: 'retain-on-failure',
     /* Captures screenshots after each test failure to provide visual context. */
