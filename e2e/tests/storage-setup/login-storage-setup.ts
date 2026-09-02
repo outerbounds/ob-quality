@@ -9,7 +9,7 @@ import { validUsers } from './user-test-data';
 setup.describe.configure({ mode: 'parallel' });
 setup.describe('Login Storage Setup', () => {
   validUsers.forEach((user, index) => {
-    setup(`Save API-authenticated storage for user ${String(index + 1)}`, async ({ request }) => {
+    setup(`Save API-authenticated storage for ${user.storageStateName}`, async ({ request }) => {
       setup.skip(isUserStorageStateValid(user), 'Existing authenticated storage state is still valid');
       await loginAndSaveStorage(request, user.emailAddress, user.password, getUserAuthPath(user));
     });
