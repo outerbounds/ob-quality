@@ -8,7 +8,7 @@ import { validUsers } from './user-test-data';
 // Configure and run the login storage setup tests in parallel.
 setup.describe.configure({ mode: 'parallel' });
 setup.describe('Login Storage Setup', () => {
-  validUsers.forEach((user, index) => {
+  validUsers.forEach(user => {
     setup(`Save API-authenticated storage for ${user.storageStateName}`, async ({ request }) => {
       setup.skip(isUserStorageStateValid(user), 'Existing authenticated storage state is still valid');
       await loginAndSaveStorage(request, user.emailAddress, user.password, getUserAuthPath(user));
