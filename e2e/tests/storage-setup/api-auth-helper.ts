@@ -17,8 +17,8 @@ interface LoginResponse {
 const performAuthRequest = async (operation: string, request: () => Promise<APIResponse>): Promise<APIResponse> => {
   try {
     return await request();
-  } catch {
-    throw new Error(`${operation} request failed`);
+  } catch (error) {
+    throw new Error(`${operation} request failed`, { cause: error });
   }
 };
 
