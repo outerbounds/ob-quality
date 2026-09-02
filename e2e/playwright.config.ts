@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 /**
  * playwright.config.ts: This module is responsible for configuring the Playwright test runner.
  * It includes settings for test execution, browser configuration, and environment variables.
@@ -6,19 +8,17 @@
 
 import { AnacondaConfigDefaults, AnacondaProjectDefaults } from '@anaconda/playwright-utils';
 import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
-import path from 'path';
-dotenv.config({ path: '.env', quiet: true });
-//import os from 'os';
+import path from 'node:path';
 
 //To run against the local environment, set the URL to your local server like 'https://localhost:9002'
 //You can override the BASE_URL by setting the URL environment variable in .env file or passing it as a command line argument.
 
-export const BASE_URL = process.env.URL ?? 'https://www.saucedemo.com';
-export const STORAGE_STATE_PATH = path.join(__dirname, 'playwright/.auth');
-// const customLoggerPath = require.resolve('@anaconda/playwright-utils/custom-logger');
-// auth token for API calls
-const bearerToken = process.env.BEARER_TOKEN;
+export const BASE_URL = process.env.URL ?? 'https://ui.dev-valay.outerbounds.xyz/dashboard';
+export const STORAGE_STATE_PATH = path.join(__dirname, 'tests/storage-setup/.auth');
+
+const extraHTTPHeaders: Record<string, string> = {
+  'qa-test': 'automation',
+};
 
 export default defineConfig({
   // Setup the defaults for all projects
@@ -28,20 +28,16 @@ export default defineConfig({
    * See https://playwright.dev/docs/api/class-testconfig#testconfig-testdir
    */
   testDir: './tests',
-  //globalSetup: require.resolve('./test-setup/global-setup'),
-  //globalTeardown: require.resolve('./test-setup/global-teardown'),
   use: {
     ...AnacondaProjectDefaults,
+    userAgent: 'zendesk-bot',
     /* Records traces after each test failure for debugging purposes. */
     trace: 'retain-on-failure',
     /* Captures screenshots after each test failure to provide visual context. */
     screenshot: 'only-on-failure',
-    // testIdAttribute: 'qa-target',
     baseURL: BASE_URL,
-    /* Sets extra headers for auth token */
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${bearerToken}`,
-    },
+    /* Adds configured authentication headers to API and browser requests. */
+    extraHTTPHeaders,
   },
 
   /**
@@ -54,6 +50,7 @@ export default defineConfig({
       testMatch: '**/login-storage-setup.ts',
       use: {
         ...devices['Desktop Chrome'],
+        trace: 'off',
         viewport: { width: 1600, height: 1000 },
         launchOptions: {
           args: ['--disable-web-security'],
@@ -67,9 +64,8 @@ export default defineConfig({
       name: 'chromium',
       dependencies: ['setup'],
       use: {
+        // Set storageState per spec file, e.g. test.use({ storageState: getUserAuthPath(nonAdminAutomationUser) }).
         viewport: null,
-        // Set the storage state here if you have only one user to login.
-        // storageState: STORAGE_STATE_LOGIN,
         launchOptions: {
           args: ['--disable-web-security', '--start-maximized'],
           /* --auto-open-devtools-for-tabs option is used to open a test with Network tab for debugging. It can help in analyzing network requests and responses.*/
@@ -86,75 +82,14 @@ export default defineConfig({
       dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
+        // Set storageState per spec file, e.g. test.use({ storageState: getUserAuthPath(nonAdminAutomationUser) }).
         viewport: { width: 1600, height: 1000 },
-        // storageState: STORAGE_STATE_LOGIN,
         launchOptions: {
           args: ['--disable-web-security'],
-          // channel: 'chrome',
           slowMo: 0,
           headless: true,
         },
       },
     },
-
-    /******* Uncomment to run tests in other browsers
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        viewport: { width: 1600, height: 1000 },
-        launchOptions: {
-          firefoxUserPrefs: {
-            'browser.cache.disk.enable': false,
-            'browser.cache.memory.enable': false,
-          },
-        },
-      },
-    },
-
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-        viewport: { width: 1600, height: 1000 },
-      },
-    },
-
-    // Test against mobile viewports.
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    // Test against branded browsers.
-    {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    },
-
-  ***************/
   ],
-
-  /**
-   * If the tests are being run on localhost, this configuration starts a web server.
-   * See https://playwright.dev/docs/test-webserver#configuring-a-web-server
-   */
-  // webServer: {
-  //   cwd: `${os.homedir()}/repos/ui`, // You can also use the relative path to the UI repo
-  //   command: 'npm start ui-server', // Start the UI server
-  //   url: BASE_URL,
-  //   ignoreHTTPSErrors: true,
-  //   timeout: 2 * 60 * 1000,
-  //   reuseExistingServer: true,
-  //   stdout: 'pipe',
-  //   stderr: 'pipe',
-  // },
 });

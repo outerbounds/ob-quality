@@ -7,10 +7,10 @@ import { User } from './user-test-data';
 
 // Minimum expiration time (in seconds) for a cookie to be considered valid.
 const DEFAULT_EXPIRATION_THRESHOLD = 120;
-// Name of the Login cookie that will be checked for expiration.
-const COOKIE_NAME = 'session-username';
-// Domain of the cookie that will be checked for expiration. If this is left empty, the domain check will be skipped.
-const COOKIE_DOMAIN = '';
+// The Outerbounds application session is stored in AWS ALB authentication cookies.
+const COOKIE_NAME = 'AWSELBAuthSessionCookie';
+// Only accept session cookies belonging to the configured application host.
+const COOKIE_DOMAIN = new URL(BASE_URL).hostname;
 // Alternative: Set the domain explicitly for the cookie to be checked for expiration.
 // const COOKIE_DOMAIN = 'www.saucedemo.com';
 // Alternative: Extract the domain from the BASE_URL or from a specific URL.
@@ -83,7 +83,7 @@ export function isUserStorageStateValid(
     );
     if (validCookies.length === 0) {
       logger.error(
-        `No valid cookies found for user: ${user.username} with criteria: ${JSON.stringify(effectiveOptions)}`,
+        `No valid cookies found for storage profile: ${user.storageStateName} with criteria: ${JSON.stringify(effectiveOptions)}`,
       );
       return false;
     }
@@ -96,8 +96,7 @@ export function isUserStorageStateValid(
 }
 
 export function getUserAuthPath(user: User): string {
-  const username = typeof user === 'string' ? user : user.username;
-  return path.join(STORAGE_STATE_PATH, `${username}.json`);
+  return path.join(STORAGE_STATE_PATH, `${user.storageStateName}.json`);
 }
 
 export async function addUserCookiesAndStorage(user: User, options?: { originUrl?: string }): Promise<void> {
@@ -105,14 +104,14 @@ export async function addUserCookiesAndStorage(user: User, options?: { originUrl
   const userData = JSON.parse(fs.readFileSync(getUserAuthPath(user), 'utf-8')) as SessionData;
   const cookies: Cookie[] = userData.cookies;
   const page = getPage();
-  logger.info(`Adding cookies for user ${user.username}`);
+  logger.info(`Adding cookies for storage profile ${user.storageStateName}`);
   await page.context().addCookies(cookies);
   const originEntry = userData.origins.find(origin => origin.origin === originUrl);
   const appLocalStorage: LocalStorage[] = originEntry?.localStorage ?? [];
   // get LocalStorage from the index 0 of origins array but this won't check for the origin URL
   // const nucleusLocalStorage: LocalStorage[] = userData.origins[0].localStorage;
   if (appLocalStorage.length > 0) {
-    logger.info(`Adding all the LocalStorage items for user ${user.username}`);
+    logger.info(`Adding all the LocalStorage items for storage profile ${user.storageStateName}`);
     for (const item of appLocalStorage) {
       await page.evaluate(
         ({ key, value }) => {

@@ -16,6 +16,7 @@
     "@anaconda/playwright-utils": "1.17.1"
   },
   "scripts": {
+    "auth:generate": "playwright test tests/storage-setup/login-storage-setup.ts --project=setup --workers=1",
     "validate": "npm run validate:architecture && tsc --noEmit",
     "validate:architecture": "node scripts/validate-test-architecture.mjs",
     "ready:install": "rimraf dist node_modules && npm i --ignore-scripts && npx playwright install chromium",
