@@ -127,7 +127,7 @@ export const loginAndSaveStorage = async (
 
   const flow = await authorize(request);
   const callbackUrl = await login(request, flow, email, password);
-  if (new URL(callbackUrl).origin !== new URL(APP_URL).origin) {
+  if (new URL(callbackUrl).origin !== new URL(AUTH_BASE_URL).origin) {
     throw new Error('Password authentication returned an unexpected OAuth callback URL');
   }
   const callbackResponse = await performAuthRequest('OAuth callback', async () =>

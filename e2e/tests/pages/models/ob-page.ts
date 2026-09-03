@@ -2,9 +2,9 @@ import { AssertUtils, PageUtils, escapeRegExp } from '@anaconda/playwright-utils
 
 import { BASE_URL } from '@playwright-config';
 
-export class DashboardPage {
-  public async goToDashboard(): Promise<void> {
-    await PageUtils.gotoURL(BASE_URL);
+export class OBPage {
+  public async navigateToDashboard(): Promise<void> {
+    await PageUtils.gotoURL(BASE_URL, { waitUntil: 'load' });
   }
 
   public async verifyDashboardURL(): Promise<void> {
