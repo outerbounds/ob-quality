@@ -1,18 +1,21 @@
-// Test data dedicated to the shared storage-setup flow only — not the general per-suite testdata
-// (tests/testdata/models or tests/testdata/packages), which covers UI/spec-level test data instead.
+import 'dotenv/config';
+
 export interface User {
-  username: string;
+  storageStateName: string;
+  emailAddress: string;
   password: string;
 }
 
-export const standardUserCredentials: User = {
-  username: 'standard_user',
-  password: 'secret_sauce',
+export const adminAutomationUser: User = {
+  storageStateName: 'admin-automation-user',
+  emailAddress: process.env.E2E_AUTOMATION_USER_ADMIN_EMAIL ?? '',
+  password: process.env.E2E_AUTOMATION_USER_ADMIN_PASSWORD ?? '',
 };
 
-export const visualTestUserCredentials: User = {
-  username: 'visual_user',
-  password: 'secret_sauce',
+export const nonAdminAutomationUser: User = {
+  storageStateName: 'non-admin-automation-user',
+  emailAddress: process.env.E2E_AUTOMATION_USER_NON_ADMIN_EMAIL ?? '',
+  password: process.env.E2E_AUTOMATION_USER_NON_ADMIN_PASSWORD ?? '',
 };
 
-export const validUsers: User[] = [standardUserCredentials, visualTestUserCredentials];
+export const validUsers: User[] = [adminAutomationUser, nonAdminAutomationUser];

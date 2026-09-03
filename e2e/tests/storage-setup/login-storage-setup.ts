@@ -1,21 +1,17 @@
-// Add the tests to store the login storage states
-import { logger, saveStorageState, test as setup } from '@anaconda/playwright-utils';
+// Use Playwright's request-only fixture here so authentication completes without creating a browser page.
+import { test as setup } from '@playwright/test';
+
+import { loginAndSaveStorage } from './api-auth-helper';
 import { getUserAuthPath, isUserStorageStateValid } from './cookie-utils';
 import { validUsers } from './user-test-data';
 
+// Configure and run the login storage setup tests in parallel.
 setup.describe.configure({ mode: 'parallel' });
-// Save the storage state for each valid user
-
 setup.describe('Login Storage Setup', () => {
   validUsers.forEach(user => {
-    setup(`Save Login Storage for ${user.username}`, async () => {
-      setup.skip(isUserStorageStateValid(user), 'Skipping saving storage state for Login');
-      // TODO: replace with a real login flow once a LoginPage page object exists in either suite
-      // (tests/pages/models or tests/pages/packages) — this storage-setup is shared, so the login flow it
-      // drives must not be tied to one suite's page objects only.
-      setup.skip(true, 'Login page object not implemented yet');
-      logger.info(`Saving ${user.username} Login Storage`);
-      await saveStorageState(getUserAuthPath(user));
+    setup(`Save API-authenticated storage for ${user.storageStateName}`, async ({ request }) => {
+      setup.skip(isUserStorageStateValid(user), 'Existing authenticated storage state is still valid');
+      await loginAndSaveStorage(request, user.emailAddress, user.password, getUserAuthPath(user));
     });
   });
 });
