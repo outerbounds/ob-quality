@@ -16,10 +16,6 @@ import path from 'node:path';
 export const BASE_URL = process.env.URL ?? 'https://ui.dev-valay.outerbounds.xyz/dashboard';
 export const STORAGE_STATE_PATH = path.join(__dirname, 'tests/storage-setup/.auth');
 
-const extraHTTPHeaders: Record<string, string> = {
-  'qa-test': 'automation',
-};
-
 export default defineConfig({
   // Setup the defaults for all projects
   ...AnacondaConfigDefaults,
@@ -35,8 +31,6 @@ export default defineConfig({
     /* Captures screenshots after each test failure to provide visual context. */
     screenshot: 'only-on-failure',
     baseURL: BASE_URL,
-    /* Adds configured authentication headers to API and browser requests. */
-    extraHTTPHeaders,
   },
 
   /**

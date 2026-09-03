@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import { MAX_TIMEOUT, logger } from '@anaconda/playwright-utils';
+import { logger } from '@anaconda/playwright-utils';
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -62,7 +62,6 @@ const authorize = async (request: APIRequestContext): Promise<string> => {
     request.get(APP_URL, {
       failOnStatusCode: false,
       maxRedirects: 0,
-      timeout: MAX_TIMEOUT,
     }),
   );
   const authorizeUrl = getRedirectLocation(appResponse, 'Application OAuth initialization');
@@ -79,7 +78,6 @@ const authorize = async (request: APIRequestContext): Promise<string> => {
     request.get(parsedAuthorizeUrl.href, {
       failOnStatusCode: false,
       maxRedirects: 0,
-      timeout: MAX_TIMEOUT,
     }),
   );
   const loginUrl = getRedirectLocation(authorizeResponse, 'OAuth authorization');
@@ -97,7 +95,6 @@ const login = async (request: APIRequestContext, flow: string, email: string, pa
         accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      timeout: MAX_TIMEOUT,
     }),
   );
 
@@ -139,7 +136,6 @@ export const loginAndSaveStorage = async (
   const callbackResponse = await performAuthRequest('OAuth callback', async () =>
     request.get(callbackUrl, {
       failOnStatusCode: false,
-      timeout: MAX_TIMEOUT,
     }),
   );
 
