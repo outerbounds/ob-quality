@@ -7,6 +7,6 @@ test.use({ storageState: getUserAuthPath(adminAutomationUser) });
 test.describe('Models dashboard navigation @smoke', () => {
   test('opens the configured dashboard with the authenticated state', async ({ dashboardPage }) => {
     await dashboardPage.goToDashboard();
-    await dashboardPage.verifyDashboardIsDisplayed();
+    await dashboardPage.verifyDashboardURL();
   });
 });

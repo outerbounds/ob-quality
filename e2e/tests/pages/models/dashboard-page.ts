@@ -7,7 +7,7 @@ export class DashboardPage {
     await PageUtils.gotoURL(BASE_URL);
   }
 
-  public async verifyDashboardIsDisplayed(): Promise<void> {
+  public async verifyDashboardURL(): Promise<void> {
     await AssertUtils.expectPageToHaveURL(new RegExp(`^${escapeRegExp(BASE_URL)}(?:/|$|\\?)`), {
       message: 'Authenticated user should remain on the configured dashboard route',
     });
