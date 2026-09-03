@@ -29,10 +29,16 @@ const assertSuccessfulResponse = (response: APIResponse, operation: string): voi
 };
 
 const getRedirectLocation = (response: APIResponse, operation: string): string => {
+  const status = response.status();
+
+  if (status < 300 || status >= 400) {
+    throw new Error(`${operation} expected an HTTP redirect but received HTTP ${String(status)}`);
+  }
+
   const location = response.headers().location;
 
   if (!location) {
-    throw new Error(`${operation} did not return a redirect location`);
+    throw new Error(`${operation} returned HTTP ${String(status)} without a Location header`);
   }
 
   return location;
