@@ -216,10 +216,15 @@ def _parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
 def main(arguments: Sequence[str] | None = None) -> int:
     args = _parse_args(arguments)
     # pre-commit passes every staged file matching the hook's `files:` pattern,
-    # which includes non-flow modules (e.g. shared utils); only treat the
-    # `*_flow.py` ones as an explicit selection, otherwise fall back to
-    # validating every flow so changes to shared code still get checked.
-    flow_paths = [path for path in args.paths if path.endswith("_flow.py")]
+    # which includes non-flow modules (e.g. shared utils). Only treat the
+    # staged paths as an explicit selection when they are all `*_flow.py`
+    # files; if any non-flow file is staged too, fall back to validating
+    # every flow so changes to shared code still get checked.
+    flow_paths = (
+        list(args.paths)
+        if args.paths and all(path.endswith("_flow.py") for path in args.paths)
+        else []
+    )
     try:
         definitions = discover_flows(selected_paths=flow_paths)
         if not args.discovery_only:
