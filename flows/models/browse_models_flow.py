@@ -6,6 +6,7 @@ Run from the flows directory with:
 
 from metaflow import FlowSpec, anaconda_models, step
 from testdata.model_catalog_data import BROWSE_LIMIT
+from utils.model_validators import validate_models
 
 
 class BrowseModelsFlow(FlowSpec):
@@ -20,6 +21,8 @@ class BrowseModelsFlow(FlowSpec):
         assert len(models) <= BROWSE_LIMIT, (
             f"Expected at most {BROWSE_LIMIT} models, got {len(models)}"
         )
+
+        validate_models(models)
 
         names = [model["name"] for model in models]
         assert len(names) == len(set(names)), f"Expected unique model names, got {names}"

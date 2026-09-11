@@ -17,7 +17,6 @@ repos:
         additional_dependencies:
           - outerbounds==0.12.44
         files: ^flows/.*\.py$
-        pass_filenames: false
 
       - id: test-flow-tools
         name: Test flow utilities
@@ -26,5 +25,9 @@ repos:
         language: python
         additional_dependencies:
           - pytest==9.1.1
-        files: ^flows/.*\.py$
+          - pyyaml
+        # Includes flows/requirements*.txt and this file so the pinned-version
+        # consistency checks in flows/tests/test_tool_versions.py run whenever
+        # a version changes, not only when a flows/*.py file is also staged.
+        files: ^(flows/.*\.py|flows/requirements(-dev)?\.txt|\.pre-commit-config\.yaml)$
         pass_filenames: false

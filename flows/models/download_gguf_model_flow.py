@@ -7,7 +7,6 @@ Run from the flows directory with:
 import os
 
 from metaflow import FlowSpec, anaconda_models, step
-
 from testdata.model_catalog_data import GGUF_MODEL
 
 
@@ -15,6 +14,7 @@ class DownloadGgufModelFlow(FlowSpec):
     @anaconda_models
     @step
     def start(self):
+        """Download the configured GGUF model and validate its local artifact."""
         model = self.anaconda_models.model(
             GGUF_MODEL["name"],
             format=GGUF_MODEL["format"],
@@ -26,30 +26,23 @@ class DownloadGgufModelFlow(FlowSpec):
             f"Expected model {GGUF_MODEL['name']}, got {model.name}"
         )
         access_denied_reason = getattr(model, "access_denied_reason", None)
-        assert not access_denied_reason, (
-            f"Model access was denied: {access_denied_reason}"
-        )
+        assert not access_denied_reason, f"Model access was denied: {access_denied_reason}"
         assert model.format == GGUF_MODEL["format"], (
             f"Expected format {GGUF_MODEL['format']}, got {model.format}"
         )
         assert model.quant_method == GGUF_MODEL["quant_method"], (
-            f"Expected quantization {GGUF_MODEL['quant_method']}, "
-            f"got {model.quant_method}"
+            f"Expected quantization {GGUF_MODEL['quant_method']}, got {model.quant_method}"
         )
         pulled_path = model.pull()
 
-        assert pulled_path == model.path, (
-            f"Expected pull to return {model.path}, got {pulled_path}"
-        )
+        assert pulled_path == model.path, f"Expected pull to return {model.path}, got {pulled_path}"
         assert model.download_status in ("downloaded", "skipped"), (
             f"Unexpected download status: {model.download_status}"
         )
         assert isinstance(pulled_path, str) and pulled_path.strip(), (
             f"Expected a non-empty model path, got {pulled_path!r}"
         )
-        assert os.path.isfile(pulled_path), (
-            f"Downloaded model file does not exist: {pulled_path}"
-        )
+        assert os.path.isfile(pulled_path), f"Downloaded model file does not exist: {pulled_path}"
         assert os.access(pulled_path, os.R_OK), (
             f"Downloaded model file is not readable: {pulled_path}"
         )
@@ -75,6 +68,7 @@ class DownloadGgufModelFlow(FlowSpec):
 
     @step
     def end(self):
+        """Report successful GGUF model validation."""
         print("GGUF MODEL DOWNLOAD FLOW PASSED")
 
 

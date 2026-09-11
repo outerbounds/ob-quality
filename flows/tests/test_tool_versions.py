@@ -1,6 +1,8 @@
 import re
 from pathlib import Path
 
+import yaml
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 REQUIREMENTS_PATH = REPOSITORY_ROOT / "flows" / "requirements.txt"
 DEV_REQUIREMENTS_PATH = REPOSITORY_ROOT / "flows" / "requirements-dev.txt"
@@ -17,28 +19,50 @@ def requirement_version(package: str, requirements_path: Path = DEV_REQUIREMENTS
     return match.group(1)
 
 
+def load_pre_commit_config() -> dict:
+    return yaml.safe_load(PRE_COMMIT_CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def hook_config(hook_id: str) -> dict:
+    """Return the hook block for `hook_id` from `.pre-commit-config.yaml`."""
+    for repo in load_pre_commit_config()["repos"]:
+        for hook in repo["hooks"]:
+            if hook["id"] == hook_id:
+                return hook
+    raise AssertionError(f"Missing hook {hook_id!r} in {PRE_COMMIT_CONFIG_PATH}")
+
+
+def additional_dependency_version(hook_id: str, package: str) -> str:
+    """Read a pinned `package==version` entry from a hook's additional_dependencies."""
+    dependencies = hook_config(hook_id).get("additional_dependencies", [])
+    for dependency in dependencies:
+        if dependency.startswith(f"{package}=="):
+            return dependency.split("==", 1)[1]
+    raise AssertionError(
+        f"Missing pinned {package} dependency for hook {hook_id!r} in {PRE_COMMIT_CONFIG_PATH}"
+    )
+
+
 def test_ruff_versions_match() -> None:
     """Keep the Ruff CLI version aligned with the isolated pre-commit hook."""
-    config = PRE_COMMIT_CONFIG_PATH.read_text(encoding="utf-8")
-    match = re.search(
-        r"repo: https://github\.com/astral-sh/ruff-pre-commit\s+rev: v([^\s]+)",
-        config,
-    )
-    assert match, f"Missing pinned Ruff revision in {PRE_COMMIT_CONFIG_PATH}"
-    assert match.group(1) == requirement_version("ruff")
+    for repo in load_pre_commit_config()["repos"]:
+        if repo["repo"] == "https://github.com/astral-sh/ruff-pre-commit":
+            rev = repo["rev"]
+            break
+    else:
+        raise AssertionError(f"Missing ruff-pre-commit repo in {PRE_COMMIT_CONFIG_PATH}")
+    assert rev.lstrip("v") == requirement_version("ruff")
 
 
 def test_pytest_versions_match() -> None:
     """Keep the pytest CLI version aligned with its pre-commit environment."""
-    config = PRE_COMMIT_CONFIG_PATH.read_text(encoding="utf-8")
-    match = re.search(r"additional_dependencies:\s+- pytest==([^\s]+)", config)
-    assert match, f"Missing pinned pytest dependency in {PRE_COMMIT_CONFIG_PATH}"
-    assert match.group(1) == requirement_version("pytest")
+    assert additional_dependency_version("test-flow-tools", "pytest") == requirement_version(
+        "pytest"
+    )
 
 
 def test_outerbounds_versions_match() -> None:
     """Validate flows against the same Outerbounds release that CI installs."""
-    config = PRE_COMMIT_CONFIG_PATH.read_text(encoding="utf-8")
-    match = re.search(r"additional_dependencies:\s+- outerbounds==([^\s]+)", config)
-    assert match, f"Missing pinned outerbounds dependency in {PRE_COMMIT_CONFIG_PATH}"
-    assert match.group(1) == requirement_version("outerbounds", REQUIREMENTS_PATH)
+    assert additional_dependency_version("check-flows", "outerbounds") == requirement_version(
+        "outerbounds", REQUIREMENTS_PATH
+    )
