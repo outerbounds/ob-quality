@@ -31,7 +31,7 @@ class BrowseModelsFlow(FlowSpec):
     @step
     def end(self):
         """Report successful catalog validation."""
-        print("BROWSE MODELS FLOW PASSE")
+        print("BROWSE MODELS FLOW PASSED")
 
 
 if __name__ == "__main__":
