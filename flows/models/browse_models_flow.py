@@ -1,4 +1,4 @@
-"""Browse models in the catalog .
+"""Browse models in the catalog.
 
 Run from the flows directory with:
     python models/browse_models_flow.py --environment=fast-bakery run --with kubernetes
@@ -31,7 +31,7 @@ class BrowseModelsFlow(FlowSpec):
     @step
     def end(self):
         """Report successful catalog validation."""
-        print("BROWSE MODELS FLOW PASSED")
+        print("BROWSE MODELS FLOW PASSE")
 
 
 if __name__ == "__main__":

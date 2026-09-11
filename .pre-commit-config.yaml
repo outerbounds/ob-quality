@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^flows/.*\.py$
+      - id: ruff-format
+        files: ^flows/.*\.py$
+
+  - repo: local
+    hooks:
+      - id: check-flows
+        name: Validate Metaflow definitions
+        entry: python flows/scripts/check_flows.py
+        language: python
+        additional_dependencies:
+          - outerbounds==0.12.44
+        files: ^flows/.*\.py$
+        pass_filenames: false
+
+      - id: test-flow-tools
+        name: Test flow utilities
+        entry: pytest
+        args: [flows/tests]
+        language: python
+        additional_dependencies:
+          - pytest==9.1.1
+        files: ^flows/.*\.py$
+        pass_filenames: false
