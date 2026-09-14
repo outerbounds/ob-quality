@@ -76,10 +76,11 @@ The flow hooks perform these checks:
 
 During a normal `git commit`, staged files determine which hooks run. A staged
 `*_flow.py` file under `flows/` activates Ruff and native Metaflow validation;
-other staged Python files activate Ruff. Checker tests run only when
-`check_flows.py`, its tests, requirements, or tool configuration changes. The
-native Metaflow check runs only for staged flow files during normal runs, while
-filename and deletion checks use the staged index. This catches rewritten
+other staged Python files under `flows/` activate Ruff. Any staged Python file
+activates repository-wide FlowSpec filename validation. Checker tests run only
+when `check_flows.py`, its tests, requirements, or tool configuration changes.
+The native Metaflow check runs only for staged flow files during normal runs,
+while filename and deletion checks use the staged index. This catches rewritten
 delete/add pairs without depending on Git rename detection and requires the
 index to retain at least one tracked flow.
 

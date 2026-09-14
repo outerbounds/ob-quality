@@ -19,9 +19,10 @@ See [`e2e/tests/README.md`](e2e/tests/README.md) for the Playwright test structu
 Each project area keeps its own tooling: `flows/` uses the root-level
 `pre-commit` configuration, and `e2e/` uses its existing npm pre-commit command.
 Git honors a single hook path, so a Husky hook at [`.husky/pre-commit`](.husky/pre-commit)
-is the entry point. Flow files and tooling configuration activate the Python
-checks; files under `e2e/tests/` and `e2e/test-setup/` activate the Playwright
-checks. A commit touching both scopes runs both.
+is the entry point. Staged Python files activate FlowSpec filename validation;
+files under `flows/` also activate the flow checks. Files under `e2e/tests/` and
+`e2e/test-setup/` activate the Playwright checks. A commit touching both scopes
+runs both.
 
 Install the Python development requirements and the hook from the repository
 root:

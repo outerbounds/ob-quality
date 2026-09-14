@@ -66,3 +66,12 @@ def test_outerbounds_versions_match() -> None:
     assert additional_dependency_version("check-flows", "outerbounds") == requirement_version(
         "outerbounds", REQUIREMENTS_PATH
     )
+
+
+def test_flow_filename_hook_matches_python_files_anywhere() -> None:
+    """Run staged FlowSpec filename validation outside the flows directory."""
+    pattern = re.compile(hook_config("check-flow-filenames")["files"])
+
+    assert pattern.search("renamed.py")
+    assert pattern.search("flows/models/example.py")
+    assert not pattern.search("flows/README.md")
