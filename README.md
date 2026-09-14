@@ -41,16 +41,12 @@ pre-commit run --all-files
 npm --prefix e2e run quality:full
 ```
 
-Staged `*_flow.py` changes run Ruff, focused pytest tests, and native Metaflow
-definition checks; other staged Python changes run Ruff and the focused tests.
-<<<<<<< HEAD
-Ruff fixes are applied first, followed by the Playwright quality report. No hook
-authenticates to Outerbounds or starts remote workloads.
-=======
-Staged files under `e2e/tests/` and `e2e/test-setup/` run lint-staged fixes and
-then the Playwright quality report. No hook authenticates to Outerbounds or
+Staged `*_flow.py` changes run Ruff and native Metaflow definition checks;
+checker tests run only when checker tooling or configuration changes. Staged
+files under `e2e/tests/` and `e2e/test-setup/` are formatted and linted before
+the Playwright quality report runs. The hook also rejects conflict markers and
+whitespace errors in staged changes. No hook authenticates to Outerbounds or
 starts remote workloads.
->>>>>>> bd3baf4 (fix pre-commit routing edge cases)
 
 ## Repository Layout
 

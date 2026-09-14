@@ -1,11 +1,10 @@
 #!/usr/bin/env sh
 # Single Git entry point for both project areas.
 #
-# Git honors one hook path, and Husky owns it so the Playwright checks keep
-# running through lint-staged, which auto-fixes and re-stages files. `pre-commit
-# install` refuses to write a hook while core.hooksPath is set, so this script
-# calls `pre-commit run` instead; that is the same staged-file run the installed
-# hook performs.
+# Git honors one hook path, and Husky owns it so both project areas can run
+# their checks. `pre-commit install` refuses to write a hook while
+# core.hooksPath is set, so this script calls `pre-commit run` instead; that is
+# the same staged-file run the installed hook performs.
 #
 # Each area only runs when it has staged changes, and a commit touching both
 # directories runs both. Nothing is nested: pre-commit and lint-staged each own
@@ -17,6 +16,9 @@
 status=0
 staged=$(git diff --cached --name-only --diff-filter=ACMRD)
 deleted=$(git diff --cached --name-only --diff-filter=D)
+
+# Catch conflict markers and whitespace errors in staged changes for both areas.
+git diff --cached --check || status=1
 
 # Config that governs how every hook behaves (ruff settings, hook definitions,
 # pinned tool versions): a change here can affect files that aren't otherwise
@@ -42,7 +44,10 @@ if printf '%s\n' "$staged" | grep -Eq "^flows/|$config_pattern"; then
     if printf '%s\n' "$staged" | grep -Eq "$config_pattern" \
       || printf '%s\n' "$deleted" | grep -Eq '^flows/'; then
       "$pre_commit" run --all-files || status=1
-      if printf '%s\n' "$deleted" | grep -Eq '^flows/.*_flow\.py$'; then
+      # check-flows validates the remaining inventory. The manual hook is only
+      # needed when deleting the final flow leaves no matching file to trigger it.
+      if printf '%s\n' "$deleted" | grep -Eq '^flows/.*_flow\.py$' \
+        && ! git ls-files --cached 'flows/*_flow.py' 'flows/**/*_flow.py' | grep -q .; then
         "$pre_commit" run check-flow-inventory --hook-stage manual || status=1
       fi
     else

@@ -34,7 +34,6 @@ repos:
         additional_dependencies:
           - pytest==9.1.1
           - pyyaml
-        # Includes tool configuration so focused tests run whenever behavior or
-        # a pinned version changes, not only when a flows/*.py file is staged.
-        files: ^(flows/.*\.py|flows/requirements(-dev)?\.txt|\.pre-commit-config\.yaml|pyproject\.toml)$
+        # Run checker tests only when checker behavior, tests, or tool pins change.
+        files: ^(flows/scripts/check_flows\.py|flows/tests/.*\.py|flows/requirements(-dev)?\.txt|\.pre-commit-config\.yaml|pyproject\.toml)$
         pass_filenames: false
