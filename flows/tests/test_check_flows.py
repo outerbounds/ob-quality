@@ -17,7 +17,7 @@ def write_flow(path: Path, class_name: str = "ExampleFlow") -> None:
     """Create the smallest flow definition needed by checker tests."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        f"from metaflow import FlowSpec\n\n"
+        "from metaflow import FlowSpec\n\n"
         f"class {class_name}(FlowSpec):\n    pass\n\n"
         f'if __name__ == "__main__":\n    {class_name}()\n',
         encoding="utf-8",
