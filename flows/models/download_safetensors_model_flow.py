@@ -7,7 +7,6 @@ Run from the flows directory with:
 import os
 
 from metaflow import FlowSpec, anaconda_models, step
-
 from testdata.model_catalog_data import SAFETENSORS_MODEL
 
 
@@ -15,6 +14,7 @@ class DownloadSafetensorsModelFlow(FlowSpec):
     @anaconda_models
     @step
     def start(self):
+        """Download and validate the configured Safetensors collection."""
         model = self.anaconda_models.model(
             SAFETENSORS_MODEL["name"],
             format=SAFETENSORS_MODEL["format"],
@@ -23,9 +23,7 @@ class DownloadSafetensorsModelFlow(FlowSpec):
 
         assert model is not None, "Expected a model handle"
         access_denied_reason = getattr(model, "access_denied_reason", None)
-        assert not access_denied_reason, (
-            f"Model access was denied: {access_denied_reason}"
-        )
+        assert not access_denied_reason, f"Model access was denied: {access_denied_reason}"
         assert model.name == SAFETENSORS_MODEL["name"], (
             f"Expected model {SAFETENSORS_MODEL['name']}, got {model.name}"
         )
@@ -39,12 +37,8 @@ class DownloadSafetensorsModelFlow(FlowSpec):
         assert isinstance(model.path, str) and model.path.strip(), (
             f"Expected a non-empty collection path, got {model.path!r}"
         )
-        assert os.path.isdir(model.path), (
-            f"Collection directory does not exist: {model.path}"
-        )
-        assert os.access(model.path, os.R_OK), (
-            f"Collection directory is not readable: {model.path}"
-        )
+        assert os.path.isdir(model.path), f"Collection directory does not exist: {model.path}"
+        assert os.access(model.path, os.R_OK), f"Collection directory is not readable: {model.path}"
         assert isinstance(model.files, list) and model.files, (
             "Expected a non-empty list of collection files"
         )
@@ -59,8 +53,7 @@ class DownloadSafetensorsModelFlow(FlowSpec):
 
         for file_info in model.files:
             assert isinstance(file_info, dict), (
-                f"Expected each file entry to be a dictionary, got "
-                f"{type(file_info).__name__}"
+                f"Expected each file entry to be a dictionary, got {type(file_info).__name__}"
             )
 
             filename = file_info.get("filename")
@@ -73,36 +66,28 @@ class DownloadSafetensorsModelFlow(FlowSpec):
                 f"Collection file resolves outside its directory: {filename}"
             )
             assert os.path.isfile(file_path), f"Missing collection file: {filename}"
-            assert os.access(file_path, os.R_OK), (
-                f"Collection file is not readable: {filename}"
-            )
+            assert os.access(file_path, os.R_OK), f"Collection file is not readable: {filename}"
 
             actual_size = os.path.getsize(file_path)
 
             expected_size = file_info.get("size_bytes")
             if expected_size is not None:
-                assert isinstance(expected_size, int) and not isinstance(
-                    expected_size, bool
-                ), (
+                assert isinstance(expected_size, int) and not isinstance(expected_size, bool), (
                     f"Expected size_bytes for {filename} to be an integer, "
                     f"got {type(expected_size).__name__}: {expected_size!r}"
                 )
                 assert expected_size >= 0, (
-                    f"Expected size_bytes for {filename} to be non-negative, "
-                    f"got {expected_size}"
+                    f"Expected size_bytes for {filename} to be non-negative, got {expected_size}"
                 )
                 if expected_size > 0:
                     assert actual_size == expected_size, (
-                        f"Size mismatch for {filename}: "
-                        f"expected {expected_size}, got {actual_size}"
+                        f"Size mismatch for {filename}: expected {expected_size}, got {actual_size}"
                     )
 
             filenames.append(filename)
             total_size += actual_size
 
-        assert len(filenames) == len(set(filenames)), (
-            f"Expected unique filenames, got {filenames}"
-        )
+        assert len(filenames) == len(set(filenames)), f"Expected unique filenames, got {filenames}"
         assert total_size > 0, "Expected total collection size to be greater than zero"
 
         print(f"Downloaded collection: {model.name}")
@@ -114,6 +99,7 @@ class DownloadSafetensorsModelFlow(FlowSpec):
 
     @step
     def end(self):
+        """Report successful Safetensors collection validation."""
         print("SAFETENSORS MODEL DOWNLOAD FLOW PASSED")
 
 
