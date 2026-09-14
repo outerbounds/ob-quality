@@ -28,10 +28,10 @@ git diff --cached --check || status=1
 config_pattern='^(\.pre-commit-config\.yaml$|pyproject\.toml$|\.husky/pre-commit$|flows/requirements(-dev)?\.txt$)'
 
 if printf '%s\n' "$staged" | grep -Eq "^flows/|$config_pattern"; then
-  if command -v pre-commit >/dev/null 2>&1; then
-    pre_commit=pre-commit
-  elif [ -x flows/.venv/bin/pre-commit ]; then
+  if [ -x flows/.venv/bin/pre-commit ]; then
     pre_commit=flows/.venv/bin/pre-commit
+  elif command -v pre-commit >/dev/null 2>&1; then
+    pre_commit=pre-commit
   else
     echo "pre-commit not found. Install it with:" >&2
     echo "  python -m pip install -r flows/requirements-dev.txt" >&2
