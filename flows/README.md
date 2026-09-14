@@ -79,8 +79,9 @@ staged Python files activate Ruff and `test-flow-tools`. Staged files under
 `e2e/` separately activate the Playwright checks; a commit touching both runs both.
 `flows/requirements.txt`, `flows/requirements-dev.txt`, or
 `.pre-commit-config.yaml` is staged, so a version bump alone still triggers the
-tool-version consistency checks. `check-flows` validates only the staged
-flow files, and `test-flow-tools` runs the complete local test suite. Neither hook
+tool-version consistency checks. The native Metaflow check runs only for staged
+flow files, while discovery and repository-wide convention checks still inspect all
+repository flows. `test-flow-tools` runs the complete local test suite. Neither hook
 authenticates to Outerbounds or starts a Kubernetes workload.
 
 If Ruff modifies a file, review and stage the change before committing again:
