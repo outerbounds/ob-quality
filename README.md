@@ -42,8 +42,8 @@ npm --prefix e2e run quality:full
 
 Staged `*_flow.py` changes run Ruff, focused pytest tests, and native Metaflow
 definition checks; other staged Python changes run Ruff and the focused tests.
-fixes and then the Playwright quality report. No hook authenticates to
-Outerbounds or starts remote workloads.
+Ruff fixes are applied first, followed by the Playwright quality report. No hook
+authenticates to Outerbounds or starts remote workloads.
 
 ## Repository Layout
 
