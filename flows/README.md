@@ -90,6 +90,7 @@ check authenticates to Outerbounds or starts a Kubernetes workload.
 Every executable QA flow must:
 
 - Use a `*_flow.py` filename.
+- Retain the `*_flow.py` suffix when renamed or moved.
 - Define exactly one top-level `FlowSpec` subclass.
 - Use a flow class name that is unique across all domains.
 - Instantiate that class under `if __name__ == "__main__"`.
