@@ -46,7 +46,7 @@ def test_rejects_invalid_selected_paths(tmp_path: Path, filename: str) -> None:
         (tmp_path / filename).write_text("VALUE = 1\n", encoding="utf-8")
 
     with pytest.raises(FlowCheckError):
-        discover_flows(tmp_path, [filename])
+        discover_flows(tmp_path, [tmp_path / filename])
 
 
 def test_rejects_file_without_one_flowspec_subclass(tmp_path: Path) -> None:
