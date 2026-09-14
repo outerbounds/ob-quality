@@ -74,9 +74,9 @@ The flow hooks perform these checks:
   consistency.
 
 During a normal `git commit`, staged files determine which hooks run. A staged
-Python file under `flows/` activates all four flow hooks, and staged files
-under `e2e/` separately activate the Playwright checks; a commit touching both
-runs both. `test-flow-tools` also runs on its own when only
+A staged `*_flow.py` file under `flows/` activates all four flow hooks; other
+staged Python files activate Ruff and `test-flow-tools`. Staged files under
+`e2e/` separately activate the Playwright checks; a commit touching both runs both.
 `flows/requirements.txt`, `flows/requirements-dev.txt`, or
 `.pre-commit-config.yaml` is staged, so a version bump alone still triggers the
 tool-version consistency checks. `check-flows` validates only the staged
