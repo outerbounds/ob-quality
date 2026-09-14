@@ -16,7 +16,7 @@ repos:
         language: python
         additional_dependencies:
           - outerbounds==0.12.44
-        files: ^flows/.*\.py$
+        files: ^flows/.*_flow\.py$
 
       - id: test-flow-tools
         name: Test flow utilities

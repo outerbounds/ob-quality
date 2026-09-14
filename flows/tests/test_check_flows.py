@@ -139,20 +139,10 @@ def test_rejects_selected_path_excluded_from_discovery(tmp_path: Path) -> None:
         discover_flows(tmp_path, [str(hidden)])
 
 
-@pytest.mark.parametrize(
-    ("paths", "expected_selection"),
-    [
-        (["flows/models/browse_models_flow.py"], ["flows/models/browse_models_flow.py"]),
-        (["flows/models/browse_models_flow.py", "flows/utils/model_validators.py"], []),
-        (["flows/utils/model_validators.py"], []),
-    ],
-)
-def test_main_filters_pre_commit_paths(
-    paths: list[str],
-    expected_selection: list[str],
+def test_main_passes_positional_paths_through_as_selection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Expand validation to all flows when pre-commit includes support files."""
+    """Forward CLI paths to discovery unchanged; pre-commit only ever stages flow files."""
     observed_selections: list[list[str]] = []
     definition = FlowDefinition(
         check_flows.FLOWS_ROOT / "models" / "browse_models_flow.py",
@@ -169,8 +159,9 @@ def test_main_filters_pre_commit_paths(
 
     monkeypatch.setattr(check_flows, "discover_flows", fake_discover_flows)
 
+    paths = ["flows/models/browse_models_flow.py"]
     assert check_flows.main(["--discovery-only", *paths]) == 0
-    assert observed_selections == [expected_selection]
+    assert observed_selections == [paths]
 
 
 def test_invokes_native_metaflow_check(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

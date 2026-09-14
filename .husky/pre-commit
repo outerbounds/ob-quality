@@ -31,18 +31,21 @@ if printf '%s\n' "$staged" | grep -Eq "^flows/|$config_pattern"; then
   else
     echo "pre-commit not found. Install it with:" >&2
     echo "  python -m pip install -r flows/requirements-dev.txt" >&2
-    exit 1
+    pre_commit=""
+    status=1
   fi
 
-  # A deletion under flows/ leaves no staged file on disk for pre-commit's own
-  # staged-file scan to match, so `pre-commit run` would silently skip
-  # check-flows; run --all-files instead so discovery still sees the deletion.
-  if printf '%s\n' "$staged" | grep -Eq "$config_pattern" \
-    || printf '%s\n' "$deleted" | grep -Eq '^flows/'; then
-    "$pre_commit" run --all-files || status=1
-  else
-    # `files:` patterns in .pre-commit-config.yaml keep this to flows/.
-    "$pre_commit" run || status=1
+  if [ -n "$pre_commit" ]; then
+    # A deletion under flows/ leaves no staged file on disk for pre-commit's own
+    # staged-file scan to match, so `pre-commit run` would silently skip
+    # check-flows; run --all-files instead so discovery still sees the deletion.
+    if printf '%s\n' "$staged" | grep -Eq "$config_pattern" \
+      || printf '%s\n' "$deleted" | grep -Eq '^flows/'; then
+      "$pre_commit" run --all-files || status=1
+    else
+      # `files:` patterns in .pre-commit-config.yaml keep this to flows/.
+      "$pre_commit" run || status=1
+    fi
   fi
 fi
 
