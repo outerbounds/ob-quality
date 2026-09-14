@@ -10,6 +10,7 @@ from scripts.check_flows import (
     FlowDefinition,
     discover_flows,
     run_metaflow_checks,
+    validate_tracked_flow_filenames,
 )
 
 
@@ -37,6 +38,28 @@ def test_discovers_flows_recursively_in_stable_order(tmp_path: Path) -> None:
         "FirstFlow",
         "SecondFlow",
     ]
+
+
+@pytest.mark.parametrize("destination", ["flows/renamed.py", "renamed.py"])
+def test_rejects_rewritten_flow_moved_to_filename_without_suffix(
+    tmp_path: Path, destination: str
+) -> None:
+    """Reject a rewritten flow that Git cannot detect as a rename."""
+    subprocess.run(["git", "init", "--quiet"], cwd=tmp_path, check=True)
+    original = tmp_path / "flows" / "original_flow.py"
+    write_flow(original, "OriginalFlow")
+    subprocess.run(["git", "add", "flows/original_flow.py"], cwd=tmp_path, check=True)
+
+    original.unlink()
+    replacement = tmp_path / destination
+    write_flow(replacement, "CompletelyRewrittenFlow")
+    replacement.write_text(
+        replacement.read_text(encoding="utf-8") + "VALUE = 1\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "add", "--all"], cwd=tmp_path, check=True)
+
+    with pytest.raises(FlowCheckError, match=rf"must end with '_flow.py': {destination}"):
+        validate_tracked_flow_filenames(tmp_path)
 
 
 @pytest.mark.parametrize("filename", ["missing_flow.py", "helper.py"])

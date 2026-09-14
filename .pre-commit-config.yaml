@@ -10,6 +10,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: check-flow-filenames
+        name: Validate tracked FlowSpec filenames
+        entry: python flows/scripts/check_flows.py --tracked-filenames-only
+        language: python
+        files: ^flows/.*\.py$
+        pass_filenames: false
+
       - id: check-flows
         name: Validate Metaflow definitions
         entry: python flows/scripts/check_flows.py

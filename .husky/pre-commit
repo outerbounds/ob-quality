@@ -19,18 +19,6 @@ status=0
 staged=$(git diff --cached --no-renames --name-only --diff-filter=ACMRD)
 deleted=$(git diff --cached --no-renames --name-only --diff-filter=D)
 
-invalid_flow_renames=$(
-  git diff --cached --name-status --find-renames --diff-filter=R \
-    | awk -F '\t' '$2 ~ /^flows\/.*_flow\.py$/ && $3 !~ /^flows\/.*_flow\.py$/ {
-        print "  " $2 " -> " $3
-      }'
-)
-if [ -n "$invalid_flow_renames" ]; then
-  echo "Flow renames must keep the *_flow.py suffix:" >&2
-  printf '%s\n' "$invalid_flow_renames" >&2
-  status=1
-fi
-
 # Catch conflict markers and whitespace errors in staged changes for both areas.
 git diff --cached --check || status=1
 

@@ -49,6 +49,41 @@ def _flow_class_names(tree: ast.Module) -> list[str]:
     ]
 
 
+def validate_tracked_flow_filenames(repository_root: Path = REPOSITORY_ROOT) -> None:
+    """Require every tracked Python file containing a FlowSpec to use the flow suffix."""
+    listed = subprocess.run(
+        ["git", "ls-files", "--cached", "-z", "--", "*.py"],
+        cwd=repository_root,
+        check=False,
+        capture_output=True,
+    )
+    if listed.returncode:
+        raise FlowCheckError("Unable to list tracked flow files from the Git index")
+
+    for raw_path in listed.stdout.split(b"\0"):
+        if not raw_path:
+            continue
+        relative_path = raw_path.decode("utf-8")
+        path = Path(relative_path)
+        if path.suffix != ".py" or path.name.endswith("_flow.py"):
+            continue
+
+        staged = subprocess.run(
+            ["git", "show", f":{relative_path}"],
+            cwd=repository_root,
+            check=False,
+            capture_output=True,
+        )
+        if staged.returncode:
+            raise FlowCheckError(f"Unable to read staged file: {relative_path}")
+        try:
+            tree = ast.parse(staged.stdout, filename=relative_path)
+        except SyntaxError:
+            continue
+        if _flow_class_names(tree):
+            raise FlowCheckError(f"Tracked FlowSpec file must end with '_flow.py': {relative_path}")
+
+
 def _is_main_guard(test: ast.expr) -> bool:
     """Recognize the standard `if __name__ == "__main__"` expression."""
     return (
@@ -204,6 +239,11 @@ def _parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
         help="Discover flows without invoking Metaflow",
     )
     parser.add_argument(
+        "--tracked-filenames-only",
+        action="store_true",
+        help="Validate tracked FlowSpec filenames from the Git index",
+    )
+    parser.add_argument(
         "--format",
         choices=("paths", "json"),
         default="paths",
@@ -216,6 +256,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
     args = _parse_args(arguments)
     flow_paths = list(args.paths)
     try:
+        if args.tracked_filenames_only:
+            validate_tracked_flow_filenames()
+            return 0
         definitions = discover_flows(selected_paths=flow_paths)
         if not args.discovery_only:
             run_metaflow_checks(definitions)

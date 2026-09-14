@@ -67,6 +67,8 @@ The flow hooks perform these checks:
 - `ruff-check`: Python linting, import ordering, common bug checks, and public
   method docstrings.
 - `ruff-format`: Python formatting.
+- `check-flow-filenames`: staged-index validation that every tracked Python file
+  containing a `FlowSpec` uses the `*_flow.py` suffix.
 - `check-flows`: flow discovery, repository conventions, and native Metaflow
   definition and DAG validation.
 - `test-flow-tools`: unit tests for the custom checker and tool-version
@@ -77,7 +79,9 @@ During a normal `git commit`, staged files determine which hooks run. A staged
 other staged Python files activate Ruff. Checker tests run only when
 `check_flows.py`, its tests, requirements, or tool configuration changes. The
 native Metaflow check runs only for staged flow files during normal runs, while
-deletion checks require the staged index to retain at least one tracked flow.
+filename and deletion checks use the staged index. This catches rewritten
+delete/add pairs without depending on Git rename detection and requires the
+index to retain at least one tracked flow.
 
 Staged files under `e2e/tests/` and `e2e/test-setup/` separately activate the
 Playwright format, lint, and quality checks; a commit touching both scopes runs
