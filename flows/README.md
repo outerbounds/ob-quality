@@ -32,7 +32,6 @@ Install the shared hook from the repository root:
 
 ```bash
 npm --prefix e2e install
-e2e/node_modules/.bin/husky
 ```
 
 Confirm that Husky owns the hook path and that `pre-commit` is callable from it:

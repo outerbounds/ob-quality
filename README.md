@@ -28,7 +28,6 @@ root:
 ```bash
 python -m pip install -r flows/requirements-dev.txt
 npm --prefix e2e install
-e2e/node_modules/.bin/husky
 ```
 
 Do not run `pre-commit install`; it refuses to write a hook while Husky owns
