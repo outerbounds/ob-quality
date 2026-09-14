@@ -41,8 +41,8 @@ pre-commit run --all-files
 npm --prefix e2e run quality:full
 ```
 
-Python changes run Ruff, focused pytest tests, and native Metaflow definition
-checks. E2E changes run the npm `precommit` command, which applies lint-staged
+Staged `*_flow.py` changes run Ruff, focused pytest tests, and native Metaflow
+definition checks; other staged Python changes run Ruff and the focused tests.
 fixes and then the Playwright quality report. No hook authenticates to
 Outerbounds or starts remote workloads.
 
