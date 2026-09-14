@@ -20,9 +20,10 @@ Each project area keeps its own tooling: `flows/` uses the root-level
 `pre-commit` configuration, and `e2e/` uses its existing npm pre-commit command.
 Git honors a single hook path, so a Husky hook at [`.husky/pre-commit`](.husky/pre-commit)
 is the entry point. Staged Python files activate FlowSpec filename validation;
-files under `flows/` also activate the flow checks. Files under `e2e/tests/` and
-`e2e/test-setup/` activate the Playwright checks. A commit touching both scopes
-runs both.
+files under `flows/` also activate the flow checks. Added, copied, modified, or
+renamed files under `e2e/tests/` and `e2e/test-setup/` activate the Playwright
+checks. Deletion-only e2e changes skip that staged-file pipeline. A commit
+touching both scopes runs both.
 
 Install the Python development requirements and the hook from the repository
 root:
@@ -44,10 +45,10 @@ npm --prefix e2e run quality:full
 
 Staged `*_flow.py` changes run Ruff and native Metaflow definition checks;
 checker tests run only when checker tooling or configuration changes. Staged
-files under `e2e/tests/` and `e2e/test-setup/` are formatted and linted before
-the Playwright quality report runs. The hook also rejects conflict markers and
-whitespace errors in staged changes. No hook authenticates to Outerbounds or
-starts remote workloads.
+existing files under `e2e/tests/` and `e2e/test-setup/` are formatted and linted
+before the Playwright quality report runs. The hook also rejects conflict
+markers and whitespace errors in staged changes. No hook authenticates to
+Outerbounds or starts remote workloads.
 
 ## Repository Layout
 

@@ -84,11 +84,13 @@ while filename and deletion checks use the staged index. This catches rewritten
 delete/add pairs without depending on Git rename detection and requires the
 index to retain at least one tracked flow.
 
-Staged files under `e2e/tests/` and `e2e/test-setup/` separately activate the
-Playwright format, lint, and quality checks; a commit touching both scopes runs
-both. Ruff also fixes staged Python lint and formatting issues. All staged
-changes are checked for conflict markers and whitespace errors. Neither project
-check authenticates to Outerbounds or starts a Kubernetes workload.
+Added, copied, modified, or renamed files under `e2e/tests/` and
+`e2e/test-setup/` separately activate the Playwright format, lint, and quality
+checks; deletion-only e2e changes skip that staged-file pipeline. A commit
+touching both scopes runs both. Ruff also fixes staged Python lint and formatting
+issues. All staged changes are checked for conflict markers and whitespace
+errors. Neither project check authenticates to Outerbounds or starts a
+Kubernetes workload.
 
 ## Flow Validation
 
