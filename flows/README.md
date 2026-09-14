@@ -77,7 +77,7 @@ During a normal `git commit`, staged files determine which hooks run. A staged
 other staged Python files activate Ruff. Checker tests run only when
 `check_flows.py`, its tests, requirements, or tool configuration changes. The
 native Metaflow check runs only for staged flow files during normal runs, while
-deletion checks still inspect the repository-wide flow inventory.
+deletion checks require the staged index to retain at least one tracked flow.
 
 Staged files under `e2e/tests/` and `e2e/test-setup/` separately activate the
 Playwright format, lint, and quality checks; a commit touching both scopes runs

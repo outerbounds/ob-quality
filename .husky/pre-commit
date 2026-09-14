@@ -58,11 +58,12 @@ if printf '%s\n' "$staged" | grep -Eq "^flows/|$config_pattern"; then
     if printf '%s\n' "$staged" | grep -Eq "$config_pattern" \
       || printf '%s\n' "$deleted" | grep -Eq '^flows/'; then
       "$pre_commit" run --all-files || status=1
-      # check-flows validates the remaining inventory. The manual hook is only
-      # needed when deleting the final flow leaves no matching file to trigger it.
+      # Discovery reads the working tree, where an untracked flow may exist.
+      # Check the index directly so the commit itself must retain a flow.
       if printf '%s\n' "$deleted" | grep -Eq '^flows/.*_flow\.py$' \
-        && ! git ls-files --cached 'flows/*_flow.py' 'flows/**/*_flow.py' | grep -q .; then
-        "$pre_commit" run check-flow-inventory --hook-stage manual || status=1
+        && ! git ls-files --cached | grep -Eq '^flows/.*_flow\.py$'; then
+        echo "At least one tracked *_flow.py file is required under flows/." >&2
+        status=1
       fi
     else
       # `files:` patterns in .pre-commit-config.yaml keep this to flows/.
@@ -72,7 +73,7 @@ if printf '%s\n' "$staged" | grep -Eq "^flows/|$config_pattern"; then
 fi
 
 if git diff --cached --name-only --diff-filter=ACMR | grep -Eq '^e2e/(tests|test-setup)/'; then
-  npm --prefix e2e run precommit || status=1
+  (cd e2e && npm run precommit) || status=1
 fi
 
 exit "$status"

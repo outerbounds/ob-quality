@@ -18,14 +18,6 @@ repos:
           - outerbounds==0.12.44
         files: ^flows/.*_flow\.py$
 
-      - id: check-flow-inventory
-        name: Validate Metaflow flow inventory
-        entry: python flows/scripts/check_flows.py --discovery-only
-        language: python
-        always_run: true
-        pass_filenames: false
-        stages: [manual]
-
       - id: test-flow-tools
         name: Test flow utilities
         entry: pytest
