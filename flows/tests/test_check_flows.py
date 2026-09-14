@@ -1,8 +1,10 @@
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
+import scripts.check_flows as check_flows
 from scripts.check_flows import (
     FlowCheckError,
     FlowDefinition,
@@ -135,6 +137,40 @@ def test_rejects_selected_path_excluded_from_discovery(tmp_path: Path) -> None:
 
     with pytest.raises(FlowCheckError, match="not a discoverable repository flow"):
         discover_flows(tmp_path, [str(hidden)])
+
+
+@pytest.mark.parametrize(
+    ("paths", "expected_selection"),
+    [
+        (["flows/models/browse_models_flow.py"], ["flows/models/browse_models_flow.py"]),
+        (["flows/models/browse_models_flow.py", "flows/utils/model_validators.py"], []),
+        (["flows/utils/model_validators.py"], []),
+    ],
+)
+def test_main_filters_pre_commit_paths(
+    paths: list[str],
+    expected_selection: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Expand validation to all flows when pre-commit includes support files."""
+    observed_selections: list[list[str]] = []
+    definition = FlowDefinition(
+        check_flows.FLOWS_ROOT / "models" / "browse_models_flow.py",
+        "BrowseModelsFlow",
+    )
+
+    def fake_discover_flows(
+        flows_root: Path = check_flows.FLOWS_ROOT,
+        selected_paths: Sequence[str] = (),
+    ) -> list[FlowDefinition]:
+        del flows_root
+        observed_selections.append(list(selected_paths))
+        return [definition]
+
+    monkeypatch.setattr(check_flows, "discover_flows", fake_discover_flows)
+
+    assert check_flows.main(["--discovery-only", *paths]) == 0
+    assert observed_selections == [expected_selection]
 
 
 def test_invokes_native_metaflow_check(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

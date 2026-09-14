@@ -87,7 +87,14 @@ def _resolve_selected_path(path: str, flows_root: Path) -> Path:
     repository_candidate = (flows_root.parent / candidate).resolve()
     if repository_candidate.is_file():
         return repository_candidate
-    return (flows_root / candidate).resolve()
+
+    flows_candidate = (flows_root / candidate).resolve()
+    if flows_candidate.is_file():
+        return flows_candidate
+
+    # Neither interpretation exists; report the repository-relative path since
+    # every caller (pre-commit, CI) passes repository-relative paths.
+    return repository_candidate
 
 
 def discover_flows(
@@ -210,21 +217,33 @@ def _parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
         default="paths",
         help="Discovery output format",
     )
+    parser.add_argument(
+        "--require-selection",
+        action="store_true",
+        help=(
+            "Treat every positional path as an explicit selection and fail if any "
+            "is invalid, instead of guessing from filename suffixes. Use this for "
+            "callers that pass a single human-provided path (e.g. CI workflow_dispatch)."
+        ),
+    )
     return parser.parse_args(arguments)
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
     args = _parse_args(arguments)
-    # pre-commit passes every staged file matching the hook's `files:` pattern,
-    # which includes non-flow modules (e.g. shared utils). Only treat the
-    # staged paths as an explicit selection when they are all `*_flow.py`
-    # files; if any non-flow file is staged too, fall back to validating
-    # every flow so changes to shared code still get checked.
-    flow_paths = (
-        list(args.paths)
-        if args.paths and all(path.endswith("_flow.py") for path in args.paths)
-        else []
-    )
+    if args.require_selection:
+        flow_paths = list(args.paths)
+    else:
+        # pre-commit passes every staged file matching the hook's `files:` pattern,
+        # which includes non-flow modules (e.g. shared utils). Only treat the
+        # staged paths as an explicit selection when they are all `*_flow.py`
+        # files; if any non-flow file is staged too, fall back to validating
+        # every flow so changes to shared code still get checked.
+        flow_paths = (
+            list(args.paths)
+            if args.paths and all(path.endswith("_flow.py") for path in args.paths)
+            else []
+        )
     try:
         definitions = discover_flows(selected_paths=flow_paths)
         if not args.discovery_only:
