@@ -40,6 +40,28 @@ def test_discovers_flows_recursively_in_stable_order(tmp_path: Path) -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("import_statement", "base_name"),
+    [
+        ("from metaflow import FlowSpec as BaseFlow", "BaseFlow"),
+        ("import metaflow as mf", "mf.FlowSpec"),
+    ],
+)
+def test_discovers_flowspec_import_aliases(
+    tmp_path: Path, import_statement: str, base_name: str
+) -> None:
+    """Recognize FlowSpec aliases in valid flow definitions."""
+    path = tmp_path / "aliased_flow.py"
+    path.write_text(
+        f"{import_statement}\n\n"
+        f"class AliasedFlow({base_name}):\n    pass\n\n"
+        'if __name__ == "__main__":\n    AliasedFlow()\n',
+        encoding="utf-8",
+    )
+
+    assert discover_flows(tmp_path) == [FlowDefinition(path.resolve(), "AliasedFlow")]
+
+
 @pytest.mark.parametrize("destination", ["flows/renamed.py", "renamed.py"])
 def test_rejects_rewritten_flow_moved_to_filename_without_suffix(
     tmp_path: Path, destination: str
@@ -52,9 +74,13 @@ def test_rejects_rewritten_flow_moved_to_filename_without_suffix(
 
     original.unlink()
     replacement = tmp_path / destination
-    write_flow(replacement, "CompletelyRewrittenFlow")
+    replacement.parent.mkdir(parents=True, exist_ok=True)
     replacement.write_text(
-        replacement.read_text(encoding="utf-8") + "VALUE = 1\n", encoding="utf-8"
+        "from metaflow import FlowSpec as BaseFlow\n\n"
+        "class CompletelyRewrittenFlow(BaseFlow):\n    pass\n\n"
+        'if __name__ == "__main__":\n    CompletelyRewrittenFlow()\n\n'
+        "VALUE = 1\n",
+        encoding="utf-8",
     )
     subprocess.run(["git", "add", "--all"], cwd=tmp_path, check=True)
 

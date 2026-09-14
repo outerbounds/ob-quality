@@ -25,10 +25,13 @@ class FlowCheckError(Exception):
     """Raised when repository flow validation fails."""
 
 
-def _is_flowspec_base(base: ast.expr) -> bool:
-    """Recognize direct FlowSpec inheritance with or without module qualification."""
-    return (isinstance(base, ast.Name) and base.id == "FlowSpec") or (
-        isinstance(base, ast.Attribute) and base.attr == "FlowSpec"
+def _is_flowspec_base(base: ast.expr, flowspec_names: set[str], metaflow_modules: set[str]) -> bool:
+    """Recognize FlowSpec inheritance through direct and module imports."""
+    return (isinstance(base, ast.Name) and base.id in flowspec_names) or (
+        isinstance(base, ast.Attribute)
+        and base.attr == "FlowSpec"
+        and isinstance(base.value, ast.Name)
+        and base.value.id in metaflow_modules
     )
 
 
@@ -42,10 +45,23 @@ def _parse_flow(path: Path) -> ast.Module:
 
 def _flow_class_names(tree: ast.Module) -> list[str]:
     """Return top-level FlowSpec subclass names from a parsed flow."""
+    flowspec_names = {"FlowSpec"}
+    metaflow_modules = {"metaflow"}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "metaflow":
+            flowspec_names.update(
+                alias.asname or alias.name for alias in node.names if alias.name == "FlowSpec"
+            )
+        elif isinstance(node, ast.Import):
+            metaflow_modules.update(
+                alias.asname or alias.name for alias in node.names if alias.name == "metaflow"
+            )
+
     return [
         node.name
         for node in tree.body
-        if isinstance(node, ast.ClassDef) and any(_is_flowspec_base(base) for base in node.bases)
+        if isinstance(node, ast.ClassDef)
+        and any(_is_flowspec_base(base, flowspec_names, metaflow_modules) for base in node.bases)
     ]
 
 
