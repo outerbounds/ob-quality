@@ -42,6 +42,9 @@ if printf '%s\n' "$staged" | grep -Eq "^flows/|$config_pattern"; then
     if printf '%s\n' "$staged" | grep -Eq "$config_pattern" \
       || printf '%s\n' "$deleted" | grep -Eq '^flows/'; then
       "$pre_commit" run --all-files || status=1
+      if printf '%s\n' "$deleted" | grep -Eq '^flows/.*_flow\.py$'; then
+        "$pre_commit" run check-flow-inventory --hook-stage manual || status=1
+      fi
     else
       # `files:` patterns in .pre-commit-config.yaml keep this to flows/.
       "$pre_commit" run || status=1

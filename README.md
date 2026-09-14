@@ -19,8 +19,9 @@ See [`e2e/tests/README.md`](e2e/tests/README.md) for the Playwright test structu
 Each project area keeps its own tooling: `flows/` uses the root-level
 `pre-commit` configuration, and `e2e/` uses its existing npm pre-commit command.
 Git honors a single hook path, so a Husky hook at [`.husky/pre-commit`](.husky/pre-commit)
-is the entry point and runs each area only when that area has staged changes. A
-commit touching both directories runs both.
+is the entry point. Flow files and tooling configuration activate the Python
+checks; files under `e2e/tests/` and `e2e/test-setup/` activate the Playwright
+checks. A commit touching both scopes runs both.
 
 Install the Python development requirements and the hook from the repository
 root:
@@ -42,8 +43,14 @@ npm --prefix e2e run quality:full
 
 Staged `*_flow.py` changes run Ruff, focused pytest tests, and native Metaflow
 definition checks; other staged Python changes run Ruff and the focused tests.
+<<<<<<< HEAD
 Ruff fixes are applied first, followed by the Playwright quality report. No hook
 authenticates to Outerbounds or starts remote workloads.
+=======
+Staged files under `e2e/tests/` and `e2e/test-setup/` run lint-staged fixes and
+then the Playwright quality report. No hook authenticates to Outerbounds or
+starts remote workloads.
+>>>>>>> bd3baf4 (fix pre-commit routing edge cases)
 
 ## Repository Layout
 

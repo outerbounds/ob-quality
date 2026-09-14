@@ -18,6 +18,14 @@ repos:
           - outerbounds==0.12.44
         files: ^flows/.*_flow\.py$
 
+      - id: check-flow-inventory
+        name: Validate Metaflow flow inventory
+        entry: python flows/scripts/check_flows.py --discovery-only
+        language: python
+        always_run: true
+        pass_filenames: false
+        stages: [manual]
+
       - id: test-flow-tools
         name: Test flow utilities
         entry: pytest
@@ -26,8 +34,7 @@ repos:
         additional_dependencies:
           - pytest==9.1.1
           - pyyaml
-        # Includes flows/requirements*.txt and this file so the pinned-version
-        # consistency checks in flows/tests/test_tool_versions.py run whenever
-        # a version changes, not only when a flows/*.py file is also staged.
-        files: ^(flows/.*\.py|flows/requirements(-dev)?\.txt|\.pre-commit-config\.yaml)$
+        # Includes tool configuration so focused tests run whenever behavior or
+        # a pinned version changes, not only when a flows/*.py file is staged.
+        files: ^(flows/.*\.py|flows/requirements(-dev)?\.txt|\.pre-commit-config\.yaml|pyproject\.toml)$
         pass_filenames: false
