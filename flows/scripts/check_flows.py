@@ -45,12 +45,14 @@ def _parse_flow(path: Path) -> ast.Module:
 
 def _flow_class_names(tree: ast.Module) -> list[str]:
     """Return top-level FlowSpec subclass names from a parsed flow."""
-    flowspec_names = {"FlowSpec"}
-    metaflow_modules = {"metaflow"}
+    flowspec_names: set[str] = set()
+    metaflow_modules: set[str] = set()
     for node in tree.body:
         if isinstance(node, ast.ImportFrom) and node.module == "metaflow":
             flowspec_names.update(
-                alias.asname or alias.name for alias in node.names if alias.name == "FlowSpec"
+                alias.asname or "FlowSpec"
+                for alias in node.names
+                if alias.name in {"FlowSpec", "*"}
             )
         elif isinstance(node, ast.Import):
             metaflow_modules.update(
