@@ -1,1 +1,1 @@
-outerbounds
+outerbounds==0.12.44

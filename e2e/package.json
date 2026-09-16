@@ -33,7 +33,7 @@
     "trace": "playwright show-trace --port 0",
     "lint": "cross-env eslint 'tests/**/*.ts' 'test-setup/**/*.ts' 'playwright.config.ts'",
     "lint:fix": "cross-env eslint 'tests/**/*.ts' 'test-setup/**/*.ts' 'playwright.config.ts' --fix",
-    "prepare": "husky",
+    "prepare": "cd .. && husky",
     "format": "cross-env prettier --write --no-error-on-unmatched-pattern 'tests/**/*.ts' 'test-setup/**/*.ts' 'playwright.config.ts' '**/*.json' '**/*.md' '!package-lock.json' '!dist/**/*' '!build/**/*'",
     "postinstall": "playwright install chromium",
     "ncu:check": "npx npm-check-updates",
