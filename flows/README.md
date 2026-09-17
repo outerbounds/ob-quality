@@ -126,3 +126,28 @@ python <domain>/<flow_file>.py --environment=fast-bakery run --with kubernetes
 
 These are real-cluster E2E flows. They interact with remote services and may
 download artifacts, so they cannot complete against Metaflow's local runtime.
+
+### Deploy and test inference
+
+From `flows`, deploy a GPU app with:
+
+```bash
+outerbounds app deploy \
+  --config-file models/deployments/mc-llamacpp-gpu-config.yaml \
+  --no-deps \
+  --skip-code-package
+```
+
+After it is ready, get the API URL:
+
+```bash
+outerbounds app info --name mc-llamacpp-gpu-app
+```
+
+Test a prompt using the `api-c-...` URL shown above:
+
+```bash
+python models/deployments/client.py \
+  --url "https://<api-url>" \
+  --prompt "Explain how gyroscopes work in three sentences."
+```

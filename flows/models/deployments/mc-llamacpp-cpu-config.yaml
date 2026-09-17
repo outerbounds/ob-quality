@@ -1,0 +1,26 @@
+name: mc-llamacpp-cpu-app
+port: 8000
+
+environment:
+  MODEL_NAME: Qwen/Qwen2.5-0.5B-Instruct
+  MODEL_QUANT: q8_0
+
+commands:
+  - 'MODEL_PATH=$(outerbounds mc pull -m "$MODEL_NAME" --quant "$MODEL_QUANT" --format gguf -o /tmp/model-downloads)'
+  - 'llama-server -m "$MODEL_PATH" -c 2048 --host 0.0.0.0 --port "${PORT:-8000}"'
+
+dependencies:
+  conda:
+    "llama.cpp": "=*=cpu_*"
+    "outerbounds": ">=0.12.48"
+
+auth:
+  type: BrowserAndApi
+
+resources:
+  cpu: "2"
+  memory: "6Gi"
+  disk: "3Gi"
+
+compute_pools:
+  - inference-cpu

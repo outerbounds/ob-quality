@@ -22,7 +22,7 @@ repos:
         entry: python flows/scripts/check_flows.py
         language: python
         additional_dependencies:
-          - outerbounds==0.12.44
+          - outerbounds==0.12.48
         files: ^flows/.*_flow\.py$
 
       - id: test-flow-tools

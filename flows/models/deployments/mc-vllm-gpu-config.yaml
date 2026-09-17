@@ -1,0 +1,23 @@
+name: mc-vllm-gpu-app
+port: 8000
+
+environment:
+  MODEL_NAME: Qwen/Qwen3-0.6B
+
+commands:
+  - 'MODEL_PATH=$(outerbounds mc pull -m $MODEL_NAME --format safetensor -o /tmp/model-downloads)'
+  - 'vllm serve "$MODEL_PATH"'
+
+image: 006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-vllm:latest
+
+auth:
+  type: API
+
+resources:
+  cpu: "8"
+  memory: "32Gi"
+  disk: "40Gi"
+  gpu: "1"
+
+compute_pools:
+  - coldbrewcrew-pool
