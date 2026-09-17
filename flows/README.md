@@ -127,6 +127,43 @@ python <domain>/<flow_file>.py --environment=fast-bakery run --with kubernetes
 These are real-cluster E2E flows. They interact with remote services and may
 download artifacts, so they cannot complete against Metaflow's local runtime.
 
+### Model Catalog inference workflows
+
+These workflows are based on `inference-images/examples/workflows`, with the two
+vLLM modes split into independently runnable files:
+
+- `models/mc_llamacpp_cpu_flow.py`: Model Catalog llama.cpp CPU inference,
+  Qwen2.5-0.5B-Instruct with q8_0; Conda provides the CPU engine.
+- `models/mc_llamacpp_gpu_flow.py`: Model Catalog llama.cpp GPU inference,
+  Qwen2.5-0.5B-Instruct with q8_0.
+- `models/mc_vllm_gpu_flow.py`: Model Catalog vLLM direct GPU inference, Qwen3-0.6B.
+- `models/mc_vllm_api_gpu_flow.py`: The same model through an OpenAI-compatible
+  API server inside the GPU task. No entry-point edits are needed.
+
+GPU flows use the `metaflow-gpu` workflow pool and the source prebuilt images.
+These flows request 2 CPUs, 8192 MB memory and 10240 MB disk. GPU flows also request
+one GPU. Run from `flows` in your configured Outerbounds environment:
+
+```bash
+python models/mc_llamacpp_gpu_flow.py run
+python models/mc_vllm_gpu_flow.py run
+python models/mc_vllm_api_gpu_flow.py run
+```
+
+Run one at a time. Do not add `--environment=fast-bakery` or global
+`--with kubernetes` to these GPU commands. They run inference inside a temporary
+Metaflow task, not against your deployed app. Inspect the printed response and
+ensure both `start` and `end` complete. The llama.cpp GPU flow additionally checks
+for a nonempty response. These are smoke tests, not accuracy benchmarks.
+
+The CPU flow uses `metaflow-cpu`, configured for **Metaflow Tasks**, with 2 CPUs,
+8192 MB memory and 10240 MB disk, and no GPU. Wait for pool creation to finish,
+then run:
+
+```bash
+python models/mc_llamacpp_cpu_flow.py --environment=fast-bakery run
+```
+
 ### Deploy and test inference
 
 From `flows`, deploy a GPU app with:

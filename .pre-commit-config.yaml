@@ -23,6 +23,7 @@ repos:
         language: python
         additional_dependencies:
           - outerbounds==0.12.48
+          - openai
         files: ^flows/.*_flow\.py$
 
       - id: test-flow-tools
