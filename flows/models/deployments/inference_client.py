@@ -1,37 +1,14 @@
 import argparse
-import json
-import os
 
 from openai import OpenAI
 
 
 def get_auth_headers():
-    from metaflow.metaflow_config_funcs import init_config
+    from metaflow.metaflow_config import SERVICE_HEADERS
 
-    conf = init_config() or {}
-    auth_key = conf.get("METAFLOW_SERVICE_AUTH_KEY")
-    if auth_key:
-        return {"x-api-key": auth_key}
-
-    configured_headers = conf.get("METAFLOW_SERVICE_HEADERS")
-    headers_value = configured_headers or os.environ.get("METAFLOW_SERVICE_HEADERS")
-    if not headers_value:
-        raise RuntimeError(
-            "Outerbounds authentication is unavailable: configure "
-            "METAFLOW_SERVICE_AUTH_KEY or METAFLOW_SERVICE_HEADERS"
-        )
-
-    if isinstance(headers_value, str):
-        try:
-            headers = json.loads(headers_value)
-        except json.JSONDecodeError as error:
-            raise RuntimeError("METAFLOW_SERVICE_HEADERS is not valid JSON") from error
-    else:
-        headers = headers_value
-
-    if not isinstance(headers, dict) or not headers:
-        raise RuntimeError("METAFLOW_SERVICE_HEADERS must contain a JSON object")
-    return headers
+    if not isinstance(SERVICE_HEADERS, dict) or not SERVICE_HEADERS:
+        raise RuntimeError("Outerbounds authentication headers are unavailable")
+    return dict(SERVICE_HEADERS)
 
 
 # Configure the OpenAI client to use the inference server.
