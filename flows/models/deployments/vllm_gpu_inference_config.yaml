@@ -6,7 +6,7 @@ environment:
 
 commands:
   - 'MODEL_PATH=$(outerbounds mc pull -m $MODEL_NAME --format safetensor -o /tmp/model-downloads)'
-  - 'vllm serve "$MODEL_PATH"'
+  - 'vllm serve "$MODEL_PATH" --host 0.0.0.0 --port "${PORT:-8000}"'
 
 image: 006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-vllm:latest
 
