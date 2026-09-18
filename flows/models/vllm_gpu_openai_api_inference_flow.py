@@ -30,7 +30,7 @@ class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
 
         client = openai.OpenAI(
             base_url=current.vllm.local_endpoint,
-            api_key="token-abc123",
+            api_key="EMPTY",
         )
 
         self.messages = [
