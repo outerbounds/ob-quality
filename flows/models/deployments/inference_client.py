@@ -44,16 +44,10 @@ default_messages = [
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Client for an OpenAI-compatible inference server"
-    )
-    parser.add_argument(
-        "--stream", action="store_true", help="Enable streaming response"
-    )
+    parser = argparse.ArgumentParser(description="Client for an OpenAI-compatible inference server")
+    parser.add_argument("--stream", action="store_true", help="Enable streaming response")
     parser.add_argument("--url", required=True, help="URL of the inference server")
-    parser.add_argument(
-        "--prompt", type=str, default=None, help="Prompt to send to the model"
-    )
+    parser.add_argument("--prompt", type=str, default=None, help="Prompt to send to the model")
     return parser.parse_args()
 
 
