@@ -9,10 +9,7 @@ commands:
   - 'MODEL_PATH=$(outerbounds mc pull -m "$MODEL_NAME" --quant "$MODEL_QUANT" --format gguf -o /tmp/model-downloads)'
   - 'llama-server -m "$MODEL_PATH" -c 2048 --host 0.0.0.0 --port "${PORT:-8000}"'
 
-dependencies:
-  conda:
-    "llama.cpp": "=*=cpu_*"
-    "outerbounds": ">=0.12.48"
+image: 006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-llamacpp:latest
 
 auth:
   type: BrowserAndApi
