@@ -170,7 +170,7 @@ From `flows`, deploy a GPU app with:
 
 ```bash
 outerbounds app deploy \
-  --config-file models/deployments/mc-llamacpp-gpu-config.yaml \
+  --config-file models/deployments/llamacpp_gpu_inference_config.yaml \
   --no-deps \
   --skip-code-package
 ```
@@ -184,7 +184,7 @@ outerbounds app info --name mc-llamacpp-gpu-app
 Test a prompt using the `api-c-...` URL shown above:
 
 ```bash
-python models/deployments/client.py \
+python models/deployments/inference_client.py \
   --url "https://<api-url>" \
   --prompt "Explain how gyroscopes work in three sentences."
 ```

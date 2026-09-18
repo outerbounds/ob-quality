@@ -1,6 +1,7 @@
 # Ignore local OS, Python, and Metaflow artifacts.
 
 .DS_Store
+.vscode/
 .metaflow/
 .venv/
 __pycache__/
