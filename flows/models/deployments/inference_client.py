@@ -13,17 +13,22 @@ def get_auth_headers():
     if auth_key:
         return {"x-api-key": auth_key}
 
-    serialized_headers = os.environ.get("METAFLOW_SERVICE_HEADERS")
-    if not serialized_headers:
+    configured_headers = conf.get("METAFLOW_SERVICE_HEADERS")
+    headers_value = configured_headers or os.environ.get("METAFLOW_SERVICE_HEADERS")
+    if not headers_value:
         raise RuntimeError(
             "Outerbounds authentication is unavailable: configure "
             "METAFLOW_SERVICE_AUTH_KEY or METAFLOW_SERVICE_HEADERS"
         )
 
-    try:
-        headers = json.loads(serialized_headers)
-    except json.JSONDecodeError as error:
-        raise RuntimeError("METAFLOW_SERVICE_HEADERS is not valid JSON") from error
+    if isinstance(headers_value, str):
+        try:
+            headers = json.loads(headers_value)
+        except json.JSONDecodeError as error:
+            raise RuntimeError("METAFLOW_SERVICE_HEADERS is not valid JSON") from error
+    else:
+        headers = headers_value
+
     if not isinstance(headers, dict) or not headers:
         raise RuntimeError("METAFLOW_SERVICE_HEADERS must contain a JSON object")
     return headers
@@ -44,16 +49,10 @@ default_messages = [
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Client for an OpenAI-compatible inference server"
-    )
-    parser.add_argument(
-        "--stream", action="store_true", help="Enable streaming response"
-    )
+    parser = argparse.ArgumentParser(description="Client for an OpenAI-compatible inference server")
+    parser.add_argument("--stream", action="store_true", help="Enable streaming response")
     parser.add_argument("--url", required=True, help="URL of the inference server")
-    parser.add_argument(
-        "--prompt", type=str, default=None, help="Prompt to send to the model"
-    )
+    parser.add_argument("--prompt", type=str, default=None, help="Prompt to send to the model")
     return parser.parse_args()
 
 
