@@ -20,4 +20,5 @@ resources:
   disk: "3Gi"
 
 compute_pools:
+  # CPU compute pool for the dev-coldbrewcrew test environment.
   - inference-cpu

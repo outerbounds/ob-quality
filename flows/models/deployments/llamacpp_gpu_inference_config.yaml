@@ -21,4 +21,5 @@ resources:
   gpu: "1"
 
 compute_pools:
+  # GPU compute pool for the dev-coldbrewcrew test environment.
   - coldbrewcrew-pool
