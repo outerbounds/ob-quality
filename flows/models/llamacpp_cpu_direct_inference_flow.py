@@ -1,7 +1,7 @@
 from metaflow import FlowSpec, conda, current, kubernetes, llamacpp, resources, step
 
 
-class LlamacppCpuInferenceFlow(FlowSpec):
+class LlamaCppCpuDirectInferenceFlow(FlowSpec):
     @llamacpp(
         source="anaconda",
         model="Qwen/Qwen2.5-0.5B-Instruct",
@@ -14,6 +14,7 @@ class LlamacppCpuInferenceFlow(FlowSpec):
             "llama.cpp": "=*=cpu_*",
         },
     )
+    # CPU Metaflow task pool for the dev-coldbrewcrew test environment.
     @kubernetes(compute_pool="metaflow-cpu")
     @resources(
         cpu=2,
@@ -25,7 +26,7 @@ class LlamacppCpuInferenceFlow(FlowSpec):
         """Run llama.cpp inference on the CPU."""
         print("CPU Inference is up and running!", flush=True)
 
-        # Direct access to LlamaCpp engine
+        # Direct access to the llama.cpp engine.
         llm = current.llamacpp.llm
 
         self.messages = [
@@ -40,6 +41,9 @@ class LlamacppCpuInferenceFlow(FlowSpec):
         outputs = llm.create_chat_completion(self.messages)
 
         self.response = outputs["choices"][0]["message"]["content"]
+        assert isinstance(self.response, str) and self.response.strip(), (
+            "Expected a non-empty llama.cpp inference response"
+        )
         print(self.response)
 
         self.next(self.end)
@@ -49,8 +53,8 @@ class LlamacppCpuInferenceFlow(FlowSpec):
     @step
     def end(self):
         """Finish the CPU inference workflow."""
-        print("Finished llama.cpp cpu workflow downloading from Anaconda")
+        print("Finished llama.cpp CPU workflow downloading from Anaconda")
 
 
 if __name__ == "__main__":
-    LlamacppCpuInferenceFlow()
+    LlamaCppCpuDirectInferenceFlow()

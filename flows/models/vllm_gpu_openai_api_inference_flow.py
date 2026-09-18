@@ -1,13 +1,14 @@
 from metaflow import FlowSpec, current, kubernetes, resources, step, vllm
 
 
-class VllmOpenAIInferenceFlow(FlowSpec):
+class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
     @vllm(
         source="anaconda",
         openai_api_server=True,
         max_retries=120,
         model="Qwen/Qwen3-0.6B",
     )
+    # GPU Metaflow task pool for the dev-coldbrewcrew test environment.
     @kubernetes(
         image="006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-vllm:latest",
         compute_pool="metaflow-gpu",
@@ -23,7 +24,7 @@ class VllmOpenAIInferenceFlow(FlowSpec):
         """Run vLLM inference through its OpenAI-compatible API."""
         import openai
 
-        print("Running vllm OpenAI workflow.")
+        print("Running vLLM OpenAI-compatible API workflow.")
         print("Downloading model from Anaconda.")
         print("Inference is up and running!", flush=True)
 
@@ -50,14 +51,17 @@ class VllmOpenAIInferenceFlow(FlowSpec):
         )
 
         self.responses = [choice.message.content for choice in response.choices]
+        assert any(isinstance(response, str) and response.strip() for response in self.responses), (
+            "Expected at least one non-empty vLLM inference response"
+        )
         print(self.responses)
         self.next(self.end)
 
     @step
     def end(self):
         """Finish the vLLM OpenAI-compatible API workflow."""
-        print("Finished vllm OpenAI workflow downloading from Anaconda.")
+        print("Finished vLLM OpenAI-compatible API workflow downloading from Anaconda.")
 
 
 if __name__ == "__main__":
-    VllmOpenAIInferenceFlow()
+    VllmGpuOpenAIAPIInferenceFlow()

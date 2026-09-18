@@ -1,12 +1,13 @@
 from metaflow import FlowSpec, current, kubernetes, llamacpp, resources, step
 
 
-class LlamacppGpuInferenceFlow(FlowSpec):
+class LlamaCppGpuDirectInferenceFlow(FlowSpec):
     @llamacpp(
         source="anaconda",
         model="Qwen/Qwen2.5-0.5B-Instruct",
         quant="q8_0",
     )
+    # GPU Metaflow task pool for the dev-coldbrewcrew test environment.
     @kubernetes(
         image="006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-llamacpp:latest",
         compute_pool="metaflow-gpu",
@@ -22,7 +23,7 @@ class LlamacppGpuInferenceFlow(FlowSpec):
         """Run llama.cpp inference on a GPU."""
         print("GPU Inference is up and running!", flush=True)
 
-        # Direct access to LlamaCpp engine
+        # Direct access to the llama.cpp engine.
         llm = current.llamacpp.llm
 
         self.messages = [
@@ -38,7 +39,7 @@ class LlamacppGpuInferenceFlow(FlowSpec):
 
         self.response = outputs["choices"][0]["message"]["content"]
         assert isinstance(self.response, str) and self.response.strip(), (
-            "Expected a nonempty llama.cpp inference response"
+            "Expected a non-empty llama.cpp inference response"
         )
         print(self.response)
 
@@ -51,4 +52,4 @@ class LlamacppGpuInferenceFlow(FlowSpec):
 
 
 if __name__ == "__main__":
-    LlamacppGpuInferenceFlow()
+    LlamaCppGpuDirectInferenceFlow()
