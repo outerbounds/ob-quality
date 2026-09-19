@@ -19,6 +19,7 @@ REPOSITORY_ROOT = FLOWS_ROOT.parent
 class FlowDefinition:
     path: Path
     class_name: str
+    environment: str | None = None
 
 
 class FlowCheckError(Exception):
@@ -65,6 +66,20 @@ def _flow_class_names(tree: ast.Module) -> list[str]:
         if isinstance(node, ast.ClassDef)
         and any(_is_flowspec_base(base, flowspec_names, metaflow_modules) for base in node.bases)
     ]
+
+
+def _requires_package_environment(tree: ast.Module) -> bool:
+    """Return whether a flow uses a package environment decorator."""
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            target = decorator.func if isinstance(decorator, ast.Call) else decorator
+            if isinstance(target, ast.Name) and target.id in {"conda", "pypi"}:
+                return True
+            if isinstance(target, ast.Attribute) and target.attr in {"conda", "pypi"}:
+                return True
+    return False
 
 
 def validate_tracked_flow_filenames(repository_root: Path = REPOSITORY_ROOT) -> None:
@@ -194,7 +209,10 @@ def discover_flows(
             raise FlowCheckError(
                 f'{path} must instantiate {class_name} under `if __name__ == "__main__"`'
             )
-        definitions.append(FlowDefinition(path=path, class_name=class_name))
+        environment = "fast-bakery" if _requires_package_environment(tree) else None
+        definitions.append(
+            FlowDefinition(path=path, class_name=class_name, environment=environment)
+        )
 
     # An empty matrix would make CI appear successful without testing anything.
     if not definitions:
@@ -237,11 +255,11 @@ def run_metaflow_checks(
         print(f"Checking {relative_path}", file=sys.stderr)
         # Native `check` owns step, transition, decorator, parameter, import, and
         # graph validation. It validates definitions without executing flow steps.
-        result = subprocess.run(
-            [sys.executable, str(relative_path), "check"],
-            cwd=flows_root,
-            check=False,
-        )
+        command = [sys.executable, str(relative_path)]
+        if definition.environment:
+            command.append(f"--environment={definition.environment}")
+        command.append("check")
+        result = subprocess.run(command, cwd=flows_root, check=False)
         if result.returncode:
             raise FlowCheckError(
                 f"Metaflow validation failed for {relative_path} with exit code {result.returncode}"

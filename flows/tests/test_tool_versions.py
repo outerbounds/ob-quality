@@ -68,6 +68,13 @@ def test_outerbounds_versions_match() -> None:
     )
 
 
+def test_openai_versions_match() -> None:
+    """Validate flows against the same OpenAI SDK release that CI installs."""
+    assert additional_dependency_version("check-flows", "openai") == requirement_version(
+        "openai", REQUIREMENTS_PATH
+    )
+
+
 def test_flow_filename_hook_matches_python_files_anywhere() -> None:
     """Run staged FlowSpec filename validation outside the flows directory."""
     pattern = re.compile(hook_config("check-flow-filenames")["files"])

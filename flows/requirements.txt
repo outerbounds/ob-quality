@@ -1,2 +1,2 @@
 outerbounds==0.12.48
-openai
+openai==2.48.0
