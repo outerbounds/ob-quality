@@ -142,9 +142,9 @@ vLLM modes split into independently runnable files:
 - `models/vllm_gpu_openai_api_inference_flow.py`: The same model through an
   OpenAI-compatible API server inside the GPU task. No entry-point edits are needed.
 
-GPU flows use the `metaflow-gpu` workflow pool and the source prebuilt images.
-These flows request 2 CPUs, 8192 MB memory and 10240 MB disk. GPU flows also request
-one GPU. Run from `flows` in your configured Outerbounds environment:
+GPU flows use the source prebuilt images and request 2 CPUs, 8192 MB memory,
+10240 MB disk, and one GPU. The smoke-test data defaults to the `metaflow-gpu`
+pool in `dev-coldbrewcrew`. Run from `flows` in that environment:
 
 ```bash
 python models/llamacpp_gpu_direct_inference_flow.py run
@@ -158,9 +158,8 @@ Metaflow task, not against your deployed app. Inspect the printed response and
 ensure both `start` and `end` complete. Every inference flow also checks for a
 non-empty response. These are smoke tests, not accuracy benchmarks.
 
-The CPU flow uses `metaflow-cpu`, configured for **Metaflow Tasks**, with 2 CPUs,
-8192 MB memory and 10240 MB disk, and no GPU. Wait for pool creation to finish,
-then run:
+The CPU flow requests 2 CPUs, 8192 MB memory and 10240 MB disk, and no GPU. The
+smoke-test data defaults to the `metaflow-cpu` pool in `dev-coldbrewcrew`:
 
 ```bash
 python models/llamacpp_cpu_direct_inference_flow.py --environment=fast-bakery run

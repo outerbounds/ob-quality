@@ -1,4 +1,10 @@
-from metaflow import FlowSpec, current, kubernetes, resources, step, vllm
+from metaflow import FlowSpec, current, kubernetes, resources, step, timeout, vllm
+from testdata.model_catalog_data import (
+    INFERENCE_TASK_TIMEOUT_MINUTES,
+    MAX_OUTPUT_TOKENS,
+    METAFLOW_GPU_COMPUTE_CONFIG,
+    OPENAI_REQUEST_TIMEOUT_SECONDS,
+)
 
 
 class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
@@ -8,10 +14,9 @@ class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
         max_retries=120,
         model="Qwen/Qwen3-0.6B",
     )
-    # GPU Metaflow task pool for the dev-coldbrewcrew test environment.
     @kubernetes(
+        **METAFLOW_GPU_COMPUTE_CONFIG,
         image="006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-vllm:latest",
-        compute_pool="metaflow-gpu",
     )
     @resources(
         cpu=2,
@@ -19,6 +24,7 @@ class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
         disk=10240,
         gpu=1,
     )
+    @timeout(minutes=INFERENCE_TASK_TIMEOUT_MINUTES)
     @step
     def start(self):
         """Run vLLM inference through its OpenAI-compatible API."""
@@ -31,6 +37,7 @@ class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
         client = openai.OpenAI(
             base_url=current.vllm.local_endpoint,
             api_key="EMPTY",
+            timeout=OPENAI_REQUEST_TIMEOUT_SECONDS,
         )
 
         self.messages = [
@@ -48,6 +55,7 @@ class VllmGpuOpenAIAPIInferenceFlow(FlowSpec):
         response = client.chat.completions.create(
             model=current.vllm.model_name,
             messages=self.messages,
+            max_tokens=MAX_OUTPUT_TOKENS,
         )
 
         self.responses = [choice.message.content for choice in response.choices]

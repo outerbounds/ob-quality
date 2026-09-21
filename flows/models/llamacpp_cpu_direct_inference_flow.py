@@ -1,4 +1,9 @@
-from metaflow import FlowSpec, conda, current, kubernetes, llamacpp, resources, step
+from metaflow import FlowSpec, conda, current, kubernetes, llamacpp, resources, step, timeout
+from testdata.model_catalog_data import (
+    INFERENCE_TASK_TIMEOUT_MINUTES,
+    MAX_OUTPUT_TOKENS,
+    METAFLOW_CPU_COMPUTE_CONFIG,
+)
 
 
 class LlamaCppCpuDirectInferenceFlow(FlowSpec):
@@ -14,13 +19,13 @@ class LlamaCppCpuDirectInferenceFlow(FlowSpec):
             "llama.cpp": "=*=cpu_*",
         },
     )
-    # CPU Metaflow task pool for the dev-coldbrewcrew test environment.
-    @kubernetes(compute_pool="metaflow-cpu")
+    @kubernetes(**METAFLOW_CPU_COMPUTE_CONFIG)
     @resources(
         cpu=2,
         memory=8192,
         disk=10240,
     )
+    @timeout(minutes=INFERENCE_TASK_TIMEOUT_MINUTES)
     @step
     def start(self):
         """Run llama.cpp inference on the CPU."""
@@ -38,7 +43,7 @@ class LlamaCppCpuDirectInferenceFlow(FlowSpec):
 
         print(self.messages[-1]["content"])
 
-        outputs = llm.create_chat_completion(self.messages)
+        outputs = llm.create_chat_completion(self.messages, max_tokens=MAX_OUTPUT_TOKENS)
 
         self.response = outputs["choices"][0]["message"]["content"]
         assert isinstance(self.response, str) and self.response.strip(), (

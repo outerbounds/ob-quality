@@ -1,4 +1,9 @@
-from metaflow import FlowSpec, current, kubernetes, resources, step, vllm
+from metaflow import FlowSpec, current, kubernetes, resources, step, timeout, vllm
+from testdata.model_catalog_data import (
+    INFERENCE_TASK_TIMEOUT_MINUTES,
+    MAX_OUTPUT_TOKENS,
+    METAFLOW_GPU_COMPUTE_CONFIG,
+)
 
 
 class VllmGpuDirectInferenceFlow(FlowSpec):
@@ -6,10 +11,9 @@ class VllmGpuDirectInferenceFlow(FlowSpec):
         source="anaconda",
         model="Qwen/Qwen3-0.6B",
     )
-    # GPU Metaflow task pool for the dev-coldbrewcrew test environment.
     @kubernetes(
+        **METAFLOW_GPU_COMPUTE_CONFIG,
         image="006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-vllm:latest",
-        compute_pool="metaflow-gpu",
     )
     @resources(
         cpu=2,
@@ -17,6 +21,7 @@ class VllmGpuDirectInferenceFlow(FlowSpec):
         disk=10240,
         gpu=1,
     )
+    @timeout(minutes=INFERENCE_TASK_TIMEOUT_MINUTES)
     @step
     def start(self):
         """Run inference directly with the vLLM engine."""
@@ -38,7 +43,10 @@ class VllmGpuDirectInferenceFlow(FlowSpec):
 
         print(self.messages[-1]["content"])
 
-        outputs = llm.chat(self.messages, sampling_params=SamplingParams(max_tokens=2048))
+        outputs = llm.chat(
+            self.messages,
+            sampling_params=SamplingParams(max_tokens=MAX_OUTPUT_TOKENS),
+        )
 
         self.responses = [[o.text for o in output.outputs] for output in outputs]
         assert any(
