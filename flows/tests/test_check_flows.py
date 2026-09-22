@@ -62,6 +62,25 @@ def test_discovers_flowspec_import_aliases(
     assert discover_flows(tmp_path) == [FlowDefinition(path.resolve(), "AliasedFlow")]
 
 
+def test_discovers_required_package_environment(tmp_path: Path) -> None:
+    """Mark flows with package decorators for fast-bakery validation."""
+    path = tmp_path / "packaged_flow.py"
+    path.write_text(
+        "from metaflow import FlowSpec, conda\n\n"
+        "class PackagedFlow(FlowSpec):\n"
+        "    @conda(packages={'example': '1.0'})\n"
+        "    def start(self):\n"
+        "        pass\n\n"
+        'if __name__ == "__main__":\n'
+        "    PackagedFlow()\n",
+        encoding="utf-8",
+    )
+
+    assert discover_flows(tmp_path) == [
+        FlowDefinition(path.resolve(), "PackagedFlow", environment="fast-bakery")
+    ]
+
+
 @pytest.mark.parametrize("destination", ["flows/renamed.py", "renamed.py"])
 def test_rejects_rewritten_flow_moved_to_filename_without_suffix(
     tmp_path: Path, destination: str
@@ -228,6 +247,26 @@ def test_invokes_native_metaflow_check(tmp_path: Path, monkeypatch: pytest.Monke
     run_metaflow_checks([FlowDefinition(path, "ExampleFlow")], tmp_path)
 
     assert calls == [([sys.executable, "example_flow.py", "check"], tmp_path)]
+
+
+def test_invokes_native_check_with_required_package_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Select fast-bakery when validating a flow with package decorators."""
+    path = tmp_path / "example_flow.py"
+    write_flow(path)
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], cwd: Path, check: bool) -> subprocess.CompletedProcess:
+        del cwd, check
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    run_metaflow_checks([FlowDefinition(path, "ExampleFlow", environment="fast-bakery")], tmp_path)
+
+    assert calls == [[sys.executable, "example_flow.py", "--environment=fast-bakery", "check"]]
 
 
 def test_reports_native_metaflow_check_failure(

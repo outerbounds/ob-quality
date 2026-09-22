@@ -2,6 +2,11 @@
 
 BROWSE_LIMIT = 5
 
+# Bounds for inference smoke tests.
+MAX_OUTPUT_TOKENS = 2048
+OPENAI_REQUEST_TIMEOUT_SECONDS = 120
+INFERENCE_TASK_TIMEOUT_MINUTES = 15
+
 # Selected because these models are available in the Anaconda Model Catalog,
 # relatively small, and suitable for E2E download testing.
 GGUF_MODEL = {

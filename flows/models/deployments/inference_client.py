@@ -11,9 +11,6 @@ def get_auth_headers():
     return dict(SERVICE_HEADERS)
 
 
-# Configure the OpenAI client to use the inference server.
-openai_api_key = "EMPTY"
-
 default_messages = [
     {"role": "system", "content": "You are a helpful assistant."},
     {"role": "user", "content": "Who won the world series in 2020?"},
@@ -39,8 +36,8 @@ def main(args):
         base_url = f"{base_url}/v1"
 
     client = OpenAI(
-        # defaults to os.environ.get("OPENAI_API_KEY")
-        api_key=openai_api_key,
+        # The inference server does not require an API key, but the client does.
+        api_key="EMPTY",
         base_url=base_url,
         default_headers=get_auth_headers(),
     )
