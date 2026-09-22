@@ -1,8 +1,9 @@
+import os
+
 from metaflow import FlowSpec, current, kubernetes, llamacpp, resources, step, timeout
 from testdata.model_catalog_data import (
     INFERENCE_TASK_TIMEOUT_MINUTES,
     MAX_OUTPUT_TOKENS,
-    METAFLOW_GPU_COMPUTE_CONFIG,
 )
 
 
@@ -13,7 +14,7 @@ class LlamaCppGpuDirectInferenceFlow(FlowSpec):
         quant="q8_0",
     )
     @kubernetes(
-        **METAFLOW_GPU_COMPUTE_CONFIG,
+        compute_pool=os.getenv("METAFLOW_GPU_COMPUTE_POOL"),
         image="006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-llamacpp:latest",
     )
     @resources(

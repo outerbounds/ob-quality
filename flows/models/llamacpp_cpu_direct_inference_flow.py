@@ -1,8 +1,9 @@
+import os
+
 from metaflow import FlowSpec, conda, current, kubernetes, llamacpp, resources, step, timeout
 from testdata.model_catalog_data import (
     INFERENCE_TASK_TIMEOUT_MINUTES,
     MAX_OUTPUT_TOKENS,
-    METAFLOW_CPU_COMPUTE_CONFIG,
 )
 
 
@@ -19,7 +20,7 @@ class LlamaCppCpuDirectInferenceFlow(FlowSpec):
             "llama.cpp": "=*=cpu_*",
         },
     )
-    @kubernetes(**METAFLOW_CPU_COMPUTE_CONFIG)
+    @kubernetes(compute_pool=os.getenv("METAFLOW_CPU_COMPUTE_POOL"))
     @resources(
         cpu=2,
         memory=8192,

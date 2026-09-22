@@ -1,8 +1,9 @@
+import os
+
 from metaflow import FlowSpec, current, kubernetes, resources, step, timeout, vllm
 from testdata.model_catalog_data import (
     INFERENCE_TASK_TIMEOUT_MINUTES,
     MAX_OUTPUT_TOKENS,
-    METAFLOW_GPU_COMPUTE_CONFIG,
 )
 
 
@@ -12,7 +13,7 @@ class VllmGpuDirectInferenceFlow(FlowSpec):
         model="Qwen/Qwen3-0.6B",
     )
     @kubernetes(
-        **METAFLOW_GPU_COMPUTE_CONFIG,
+        compute_pool=os.getenv("METAFLOW_GPU_COMPUTE_POOL"),
         image="006988687827.dkr.ecr.us-west-2.amazonaws.com/anaconda-vllm:latest",
     )
     @resources(
