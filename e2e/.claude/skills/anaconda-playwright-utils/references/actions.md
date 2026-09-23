@@ -271,7 +271,7 @@ For all alert helpers, `options.timeout` bounds both the trigger click and the d
 
 ### Login Form Example
 
-**Page Object (tests/pages/login-page.ts):**
+**Page Object (tests/pages/ui/login-page.ts):**
 
 ```typescript
 import {
@@ -282,8 +282,8 @@ import {
   fillAndEnter,
   gotoURL,
 } from '@anaconda/playwright-utils';
-import { urlData } from '@testdata/<module>'; // NOTE: replace <module> with your project testdata module (e.g. '@testdata/sauce-demo-test-data')
-import { adminUserData, nonAdminUserData } from '@testdata/<module>'; // NOTE: replace <module> with your project testdata module
+import { urlData } from '@testdata/ui/<module>'; // NOTE: replace <module> with your project testdata module (e.g. '@testdata/ui/sauce-demo-test-data')
+import { adminUserData, nonAdminUserData } from '@testdata/ui/<module>'; // NOTE: replace <module> with your project testdata module
 
 export class LoginPage {
   private readonly usernameField = '#username';
@@ -339,7 +339,7 @@ Fixture registration and spec wiring follow the standard 3-file pattern — see 
 
 ### Checkout Form Example
 
-**Page Object (tests/pages/checkout-page.ts):**
+**Page Object (tests/pages/ui/checkout-page.ts):**
 
 ```typescript
 import {

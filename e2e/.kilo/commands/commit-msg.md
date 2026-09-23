@@ -1,10 +1,8 @@
 ---
 description: Suggest a branch name and generate a compact and a descriptive commit subject, copying the descriptive one to the clipboard.
-argument-hint: '[staged|all]'
-model: haiku
-allowed-tools: Read, AskUserQuestion, Bash(git branch:*), Bash(git log:*), Bash(git status:*), Bash(git diff:*), Bash(git ls-files:*), Bash(osascript:*)
-version: 2.1.0
 ---
+
+<!-- generated from templates/commands/commit-msg.md by scripts/build-kilo-commands.js — do not edit; version: 2.1.0 -->
 
 Generate a branch suggestion and two commit subjects for the user to pick from and edit. Do NOT commit, push, or touch `package.json`, `package-lock.json`, or `CHANGELOG.md` — those belong to the release process.
 
@@ -45,7 +43,7 @@ Route in this order:
 Pull content only where it informs the message. **Never run a monolithic diff across all staged files** — large changesets overflow the tool output budget and get silently truncated. Instead:
 
 - From the `--stat` output, identify which human-authored files need their content read (skip lockfiles, `dist/`, hash registries, and generated output — their stat line is self-explanatory).
-- For each file that needs content, run `git diff --cached -- <path>` **one file at a time** (staged mode), or `git diff -- <path>` (unstaged mode). Read untracked files with the `Read` tool.
+- For each file that needs content, run `git diff --cached -- <path>` **one file at a time** (staged mode), or `git diff -- <path>` (unstaged mode). Read untracked files with the `read` tool.
 - Skip per-file diffs for files whose stat is self-explanatory (e.g. `scripts/known-file-hashes.json` — "hash updated"; `package-lock.json` — "lockfile bump").
 
 ## 2. Branch
@@ -114,7 +112,7 @@ Show, in this exact order, and nothing else:
    osascript -e 'on run argv' -e 'set the clipboard to item 1 of argv' -e 'end run' "<descriptive subject>"
    ```
 
-   Do not use `Write`, heredocs, shell redirection, pipes, command substitution, temp files, or `pbcopy`; those forms either fail outside the project or trigger the assistant's "cannot be statically analyzed" approval prompt (Claude Code and Kilo both gate compound shell forms this way).
+   Do not use `write`, heredocs, shell redirection, pipes, command substitution, temp files, or `pbcopy`; those forms either fail outside the project or trigger the assistant's "cannot be statically analyzed" approval prompt (Claude Code and Kilo both gate compound shell forms this way).
 
 5. If the Bash command succeeds, say: "Copied the descriptive message to clipboard — paste into VS Code source control and edit if you like." If it fails, say: "Automatic clipboard copy failed on this machine; copy the detailed block above."
 

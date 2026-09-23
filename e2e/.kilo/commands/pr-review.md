@@ -1,10 +1,8 @@
 ---
 description: Review pending Playwright QA changes, a branch, or a PR against this project's QA standards (CLAUDE.md + qa-automation-quality guidelines) before pushing. Use when asked to review test code changes or do a pre-push review.
-argument-hint: '[pr-number [post]] | [base-ref] [-- <note>] — empty reviews local work vs the default branch'
-allowed-tools: Read, Grep, Glob, Write, Bash(mktemp:*), Bash(rm:*), Bash(git status:*), Bash(git branch:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git ls-files:*), Bash(git merge-base:*), Bash(git rev-parse:*), Bash(git symbolic-ref:*), Bash(git fetch:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr comment:*)
-model: sonnet
-version: 2.1.0
 ---
+
+<!-- generated from templates/commands/pr-review.md by scripts/build-kilo-commands.js — do not edit; version: 2.1.0 -->
 
 Review the pending change set against this project's QA standards and report severity-ranked findings in chat. This command leaves the **repository read-only** — never commit, push, stage, edit, or auto-fix repository files, and never post to GitHub except in explicit `post` mode. That mode may write and remove only the temporary report body file outside the repository. (Installed by `npx anaconda-pw-setup` — `.claude/commands/` for Claude Code, `.kilo/commands/` for Kilo; the master copy lives in `templates/commands/` of `@anaconda/playwright-utils`. Kilo has no per-command tool-scoping equivalent to Claude Code's `allowed-tools`, so on Kilo this repository-read-only guarantee is enforced only by these instructions, not by the runtime.)
 
@@ -33,7 +31,7 @@ Read these in order; they are the review rules — never re-derive QA standards 
 3. `.claude/skills/anaconda-playwright-utils/references/locators.md` — when locator-tier judgment calls come up.
 4. `.claude/skills/playwright-cli/references/element-attributes.md` — the `dupCount`/`onHost` core-eval decision table the Locators row below checks against.
 
-If the guidelines file is missing (check with `Read`, not a shell test), fall back to `CLAUDE.md` alone; if root `CLAUDE.md` is missing too, review with whichever rubric files exist. In either case recommend re-running `npx anaconda-pw-setup` (full run, no flags) to restore the missing files.
+If the guidelines file is missing (check with `read`, not a shell test), fall back to `CLAUDE.md` alone; if root `CLAUDE.md` is missing too, review with whichever rubric files exist. In either case recommend re-running `npx anaconda-pw-setup` (full run, no flags) to restore the missing files.
 
 ## 2. Gather the diff (stat first)
 
@@ -114,7 +112,7 @@ git diff "<BASE>" --diff-filter=d
 git diff "<BASE>" --diff-filter=d -- tests/ playwright.config.ts package.json
 ```
 
-- **Untracked files** that are part of the change — `Read` each relevant one (skip binaries, reports, vendored).
+- **Untracked files** that are part of the change — `read` each relevant one (skip binaries, reports, vendored).
 - **Deletions** — judge from the `--stat` line; peek with `git show <BASE>:<path>` only for a small, high-signal removal.
 - **Lockfiles, reports, and generated output** — judge from the stat line unless the change is hand-sized.
 
@@ -198,7 +196,7 @@ Report **every** finding with its severity (`critical | major | minor | info`) a
 Only when `$ARGUMENTS` contained both a PR number and the literal keyword `post` — post the Findings table and Verdict as **one** comment. Do not put report text in a shell argument or heredoc. Instead:
 
 1. Run `mktemp` to create a temporary body-file path.
-2. Use the `Write` tool to write the Findings table and Verdict verbatim to that absolute temporary path. This is the only allowed file write; never write the report in the repository.
+2. Use the `write` tool to write the Findings table and Verdict verbatim to that absolute temporary path. This is the only allowed file write; never write the report in the repository.
 3. In **one Bash tool call**, run the post, capture its status, remove the body file, and return the captured status:
 
    ```bash

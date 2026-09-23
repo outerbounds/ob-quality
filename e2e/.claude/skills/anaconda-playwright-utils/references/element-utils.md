@@ -305,7 +305,7 @@ test('spec file', async () => {
 
 ### Using Element-Utils for Data Extraction
 
-**Page Object (tests/pages/product-page.ts):**
+**Page Object (tests/pages/ui/product-page.ts):**
 
 ```typescript
 import {

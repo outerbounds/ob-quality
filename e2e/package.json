@@ -13,7 +13,7 @@
     "node": ">=24.0.0"
   },
   "devDependencies": {
-    "@anaconda/playwright-utils": "1.17.1"
+    "@anaconda/playwright-utils": "^2.1.0"
   },
   "scripts": {
     "validate": "npm run validate:architecture && tsc --noEmit",

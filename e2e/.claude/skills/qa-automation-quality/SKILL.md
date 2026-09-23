@@ -4,7 +4,7 @@ description: Run full repo quality gates for Playwright TypeScript QA automation
 allowed-tools:
   - Bash
   - Read
-version: 1.17.1
+version: 2.1.0
 ---
 
 # QA automation quality

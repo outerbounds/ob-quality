@@ -101,10 +101,10 @@ Action functions already enforce `onlyVisible: true` — hidden duplicates are f
 
 ### Step 3 — Create page object classes
 
-Page objects live in `tests/pages/`. Use destructured imports from `@anaconda/playwright-utils` — never namespace objects (`ActionUtils.xxx`) or raw Playwright API calls.
+UI page objects live in `tests/pages/ui/` (API classes in `tests/pages/api/`); preserve an existing project's layout when it differs. Use destructured imports from `@anaconda/playwright-utils` — never namespace objects (`ActionUtils.xxx`) or raw Playwright API calls.
 
 ```typescript
-// tests/pages/home-page.ts
+// tests/pages/ui/home-page.ts
 import { clickAndNavigate, getLocatorByTestId, gotoURL } from '@anaconda/playwright-utils';
 
 export class HomePage {
@@ -123,7 +123,7 @@ export class HomePage {
 ```
 
 ```typescript
-// tests/pages/sign-in-page.ts
+// tests/pages/ui/sign-in-page.ts
 import { expectElementToBeVisible, getLocatorByTestId } from '@anaconda/playwright-utils';
 
 export class SignInPage {
@@ -144,8 +144,8 @@ Extend the base `test` fixture so every spec receives page object instances auto
 ```typescript
 // tests/fixtures/fixture.ts
 import { test as baseTest } from '@anaconda/playwright-utils';
-import { HomePage } from '@pages/home-page';
-import { SignInPage } from '@pages/sign-in-page';
+import { HomePage } from '@pages/ui/home-page';
+import { SignInPage } from '@pages/ui/sign-in-page';
 
 export const test = baseTest.extend<{
   homePage: HomePage;
