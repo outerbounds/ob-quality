@@ -1,8 +1,8 @@
 ---
-description: Run the Sesame MCP installation for the user's OS — verify GitHub CLI and auth, download and inspect the installer from Anaconda-Sandbox/sesame, register the MCP server with Claude Code or Claude Desktop, and add sesame to PATH.
+description: Run the Sesame MCP installation for the user's OS — verify GitHub CLI and auth, download and inspect the installer from Anaconda-Sandbox/sesame, register the MCP server with Claude Code, Claude Desktop, or Kilo, and add sesame to PATH.
 model: sonnet
-allowed-tools: Read, Bash(mktemp:*), Bash(gh api:*), Bash(gh auth status:*), Bash(jq:*), Bash(mkdir:*), Bash(cp:*), Bash(command -v:*), Bash(which:*), Bash(grep:*), Bash(printf:*), Bash(dirname:*), Bash(less:*), Bash(source ~/.zshrc), Bash(source ~/.bashrc), Bash(claude mcp list:*), Bash(claude mcp add:*), Bash([:*)
-version: 1.17.1
+allowed-tools: Read, Bash(mktemp:*), Bash(rm:*), Bash(gh api:*), Bash(gh auth status:*), Bash(jq:*), Bash(mkdir:*), Bash(cp:*), Bash(command -v:*), Bash(which:*), Bash(grep:*), Bash(printf:*), Bash(dirname:*), Bash(less:*), Bash(source ~/.zshrc), Bash(source ~/.bashrc), Bash(claude mcp list:*), Bash(claude mcp add:*), Bash([:*)
+version: 2.1.0
 ---
 
 Run the Sesame MCP installation for the user's OS.
@@ -23,8 +23,25 @@ Run the Sesame MCP installation for the user's OS.
         echo "✗ Sesame binary not found at $SESAME_BIN"
       fi
       claude mcp list 2>/dev/null | grep -i sesame \
-        && echo "✓ Sesame is registered as an MCP server." \
-        || echo "✗ Sesame is not registered — continue to Step 5."
+        && echo "✓ Sesame is registered as an MCP server (Claude Code)." \
+        || echo "✗ Sesame is not registered with Claude Code — continue to Step 5 if using Claude Code."
+      DESKTOP_CONFIGS=(
+        "$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+        "$HOME/.config/claude/claude_desktop_config.json"
+        "$HOME/.config/Claude/claude_desktop_config.json"
+      )
+      if grep -q '"sesame"' "${DESKTOP_CONFIGS[@]}" 2>/dev/null; then
+        echo "✓ Sesame is registered in a Claude Desktop config."
+      else
+        echo "✗ Sesame is not registered with Claude Desktop — continue to Step 5 if using Claude Desktop."
+      fi
+      KILO_CFG=""
+      for f in .kilo/kilo.jsonc .kilo/kilo.json kilo.jsonc kilo.json; do [ -f "$f" ] && KILO_CFG="$f" && break; done
+      if [ -n "$KILO_CFG" ] && grep -q '"sesame"' "$KILO_CFG"; then
+        echo "✓ Sesame is registered in Kilo config ($KILO_CFG)."
+      else
+        echo "✗ Sesame is not registered with Kilo — continue to Step 5 if using Kilo."
+      fi
       ```
     - **Windows** (PowerShell):
       ```powershell
@@ -41,15 +58,27 @@ Run the Sesame MCP installation for the user's OS.
       }
       $mcpList = claude mcp list 2>$null
       if ($mcpList -match 'sesame') {
-        Write-Host "✓ Sesame is registered as an MCP server." -ForegroundColor Green
+        Write-Host "✓ Sesame is registered as an MCP server (Claude Code)." -ForegroundColor Green
       } else {
-        Write-Host "✗ Sesame is not registered — continue to Step 5." -ForegroundColor Yellow
+        Write-Host "✗ Sesame is not registered with Claude Code — continue to Step 5 if using Claude Code." -ForegroundColor Yellow
+      }
+      $desktopConfig = "$env:APPDATA\Claude\claude_desktop_config.json"
+      if ((Test-Path $desktopConfig) -and (Select-String -Path $desktopConfig -Pattern '"sesame"' -Quiet)) {
+        Write-Host "✓ Sesame is registered in Claude Desktop config." -ForegroundColor Green
+      } else {
+        Write-Host "✗ Sesame is not registered with Claude Desktop — continue to Step 5 if using Claude Desktop." -ForegroundColor Yellow
+      }
+      $kiloCfg = @('.kilo/kilo.jsonc', '.kilo/kilo.json', 'kilo.jsonc', 'kilo.json') | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if ($kiloCfg -and (Select-String -Path $kiloCfg -Pattern '"sesame"' -Quiet)) {
+        Write-Host "✓ Sesame is registered in Kilo config ($kiloCfg)." -ForegroundColor Green
+      } else {
+        Write-Host "✗ Sesame is not registered with Kilo — continue to Step 5 if using Kilo." -ForegroundColor Yellow
       }
       ```
 
     **Decision:**
-    - Binary found **and** MCP registered → already fully installed. Nothing to do. Stop here.
-    - Binary found **but** MCP not registered → skip to Step 5 (MCP registration).
+    - Binary found **and** MCP registered (with the assistant you are using — Claude Code, Claude Desktop, or Kilo) → already fully installed. Nothing to do. Stop here.
+    - Binary found **but** MCP not registered → if using Claude Desktop, continue with Step 4 so its config directory exists; if using Claude Code or Kilo, skip to Step 5 (MCP registration).
     - Binary not found → proceed from Step 1.
 
 1.  Check if GitHub CLI is installed:
@@ -125,13 +154,24 @@ Run the Sesame MCP installation for the user's OS.
     > **Why:** This downloads the Sesame installer script first, so you can inspect it before running it. The command below fetches the installer from the repository default branch.
     - **macOS/Linux**:
       ```bash
+      SESAME_COMMAND="$HOME/.local/share/sesame/venv/bin/sesame"
       TMP_INSTALL="$(mktemp)"
       gh api "repos/Anaconda-Sandbox/sesame/contents/install" -H "Accept: application/vnd.github.raw+json" > "$TMP_INSTALL" \
         && [ -s "$TMP_INSTALL" ] \
         || { echo "Installer download failed — check gh auth status and repo access." >&2; rm -f "$TMP_INSTALL"; exit 1; }
       less "$TMP_INSTALL"
       bash "$TMP_INSTALL"
+      INSTALL_EXIT_CODE=$?
       rm -f "$TMP_INSTALL"
+      if [ "$INSTALL_EXIT_CODE" -ne 0 ]; then
+        echo "Sesame installer failed with exit code $INSTALL_EXIT_CODE. Do not update MCP configuration." >&2
+        exit 1
+      fi
+      if [ ! -x "$SESAME_COMMAND" ]; then
+        echo "Sesame installation completed, but the executable was not found at $SESAME_COMMAND. Do not update MCP configuration; verify the installer output and install location." >&2
+        exit 1
+      fi
+      echo "Sesame binary installed: $SESAME_COMMAND"
       ```
     - **Windows** (PowerShell):
       ```powershell
@@ -144,10 +184,15 @@ Run the Sesame MCP installation for the user's OS.
       }
       Get-Content $tmpInstall
       powershell -ExecutionPolicy Bypass -File $tmpInstall
+      $installExitCode = $LASTEXITCODE
       Remove-Item -Path $tmpInstall -Force -ErrorAction SilentlyContinue
+      if ($installExitCode -ne 0) {
+        Write-Error "Sesame installer failed with exit code $installExitCode. Do not update MCP configuration."
+        return
+      }
       ```
 
-4.  Check for and create Claude Desktop config if needed:
+4.  **Claude Desktop only:** Check for and create Claude Desktop config if needed. **Skip this entire step when using Claude Code or Kilo** — neither uses `claude_desktop_config.json`, and this step would otherwise create an unrelated Desktop configuration directory/file.
 
     > **Why:** Step 5 needs to merge Sesame into the Claude Desktop config file. This step ensures the config directory and file exist first — without them, the merge in Step 5 would fail. Creates an empty `{}` JSON file if none exists.
     - **macOS**:
@@ -170,7 +215,7 @@ Run the Sesame MCP installation for the user's OS.
       fi
       ```
 
-      > **Note:** Claude Desktop has no official Linux build; community builds vary and some use `~/.config/Claude` (capitalized). Verify your build's config directory first — or, if you are using Claude Code, skip the Desktop config entirely and use the `claude mcp add` flow in Step 5.
+      > **Note:** Claude Desktop has no official Linux build; community builds vary and some use `~/.config/Claude` (capitalized). Verify your build's config directory first — or, if you are using Claude Code or Kilo, skip this Desktop config step entirely and use the matching flow in Step 5 instead.
 
     - **Windows** (PowerShell):
       ```powershell
@@ -306,11 +351,53 @@ Run the Sesame MCP installation for the user's OS.
 
       > **Note:** After updating `claude_desktop_config.json`, restart Claude Desktop so it reloads the new MCP server configuration.
 
+    **For Kilo users:** Kilo has no CLI equivalent of `claude mcp add` — MCP servers are configured directly under the top-level `mcp` key of a `kilo.jsonc`/`kilo.json` config file (project root or `.kilo/`). That file can carry other settings and user comments (`skills.paths`, `instructions`, other MCP servers), so **never overwrite it or script a merge into it** — only write a fresh file when none of the four candidate paths exist; otherwise print the entry for you to add by hand and stop.
+
+    - **macOS/Linux**:
+      ```bash
+      SESAME_COMMAND="$HOME/.local/share/sesame/venv/bin/sesame"
+      KILO_CFG=""
+      for f in .kilo/kilo.jsonc .kilo/kilo.json kilo.jsonc kilo.json; do [ -f "$f" ] && KILO_CFG="$f" && break; done
+      if [ -z "$KILO_CFG" ]; then
+        mkdir -p .kilo
+        printf '{\n  "$schema": "https://app.kilo.ai/config.json",\n  "skills": {\n    "paths": [".claude/skills"]\n  },\n  "instructions": [\n    "CLAUDE.md",\n    ".kilo/instructions/agent-routing.md"\n  ],\n  "mcp": {\n    "sesame": {\n      "type": "local",\n      "command": ["%s"]\n    }\n  }\n}\n' "$SESAME_COMMAND" > .kilo/kilo.jsonc
+        echo "✓ Created .kilo/kilo.jsonc with the Kilo setup wiring (skills.paths, instructions) and the Sesame MCP server registered."
+      else
+        echo "$KILO_CFG already exists — merge this top-level block by hand, then reload Kilo or run /mcps:"
+        printf '"mcp": {\n  "sesame": { "type": "local", "command": ["%s"] }\n}\n' "$SESAME_COMMAND"
+      fi
+      ```
+    - **Windows** (PowerShell):
+      ```powershell
+      $possibleSesamePaths = @(
+        "$env:LOCALAPPDATA\sesame\venv\Scripts\sesame.exe",
+        "$env:LOCALAPPDATA\Programs\sesame\venv\Scripts\sesame.exe",
+        "$env:LOCALAPPDATA\Programs\Sesame\venv\Scripts\sesame.exe"
+      )
+      $sesameCommand = $possibleSesamePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $sesameCommand) {
+        Write-Error "Could not locate sesame.exe. Please verify the installed location."
+        return
+      }
+      $kiloCfg = @('.kilo/kilo.jsonc', '.kilo/kilo.json', 'kilo.jsonc', 'kilo.json') | Where-Object { Test-Path $_ } | Select-Object -First 1
+      $sesameCommandJson = $sesameCommand.Replace('\', '\\')
+      if (-not $kiloCfg) {
+        if (-not (Test-Path .kilo)) { New-Item -ItemType Directory -Path .kilo -Force | Out-Null }
+        $kiloConfigContent = '{' + "`n" + '  "$schema": "https://app.kilo.ai/config.json",' + "`n" + '  "skills": {' + "`n" + '    "paths": [".claude/skills"]' + "`n" + '  },' + "`n" + '  "instructions": [' + "`n" + '    "CLAUDE.md",' + "`n" + '    ".kilo/instructions/agent-routing.md"' + "`n" + '  ],' + "`n" + '  "mcp": {' + "`n" + ('    "sesame": { "type": "local", "command": ["' + $sesameCommandJson + '"] }') + "`n" + '  }' + "`n" + '}'
+        # Windows PowerShell 5.1 defaults to UTF-16LE; Kilo config must be UTF-8.
+        Set-Content -Path .kilo/kilo.jsonc -Value $kiloConfigContent -Encoding utf8
+        Write-Host "✓ Created .kilo/kilo.jsonc with the Kilo setup wiring (skills.paths, instructions) and the Sesame MCP server registered." -ForegroundColor Green
+      } else {
+        Write-Host "$kiloCfg already exists — merge this top-level block by hand, then reload Kilo or run /mcps:"
+        Write-Host ('"mcp": {' + "`n" + '  "sesame": { "type": "local", "command": ["' + $sesameCommandJson + '"] }' + "`n" + '}')
+      }
+      ```
+
 6.  Add sesame to PATH:
 
     > **Why:** Adding Sesame to your PATH allows you to run the `sesame` command from any terminal without specifying the full path. This makes it easier to use Sesame tools directly from the command line.
 
-    > **Important:** Updating `~/.zshrc`, `~/.bashrc`, or PowerShell profile only affects _new_ shells launched after the change. If you are running this inside Claude Code, **you must restart Claude Code or open a new terminal** for the PATH change to take effect. Claude Code's Bash tool inherits the environment when it starts; it will not automatically pick up changes to your shell config.
+    > **Important:** Updating `~/.zshrc`, `~/.bashrc`, or PowerShell profile only affects _new_ shells launched after the change. If you are running this inside an assistant's own terminal (Claude Code or Kilo), **you must restart the assistant or open a new terminal** for the PATH change to take effect — its Bash tool inherits the environment when it starts and will not automatically pick up changes to your shell config.
     - **macOS**: Append to `~/.zshrc` (idempotent — skips when already present; optionally do the same for `~/.zprofile` for login shells):
 
       ```bash
@@ -337,7 +424,7 @@ Run the Sesame MCP installation for the user's OS.
       ```
     - **Windows**: Add to PowerShell profile ($PROFILE) or system environment variables.
 
-      > **Note:** `$env:PATH = "..."` only updates PATH for the current PowerShell session. To keep `sesame` on PATH after you close the terminal, add the line to your PowerShell profile or update the user environment variable. If running inside Claude Code, you must **restart Claude Code** after updating system environment variables for the changes to take effect.
+      > **Note:** `$env:PATH = "..."` only updates PATH for the current PowerShell session. To keep `sesame` on PATH after you close the terminal, add the line to your PowerShell profile or update the user environment variable. If running inside an assistant's own terminal (Claude Code or Kilo), you must **restart the assistant** after updating system environment variables for the changes to take effect.
 
       ```powershell
       # Immediate access in this session:
@@ -360,3 +447,130 @@ Run the Sesame MCP installation for the user's OS.
     > **Why:** This final step confirms that Sesame was installed correctly and is accessible.
     - **Claude Code users**: Run `/sesame:status` — it checks that the MCP server is properly configured and responding.
     - **Claude Desktop users**: Restart Claude Desktop, then confirm `sesame` appears in Settings → Developer (local MCP servers) and responds in a chat.
+    - **Kilo users**: Reload the Kilo session (or run `/mcps` / Ctrl+P → "Toggle MCPs") and confirm that `sesame` appears in the list and is enabled.
+
+> **Note:** The section below is **Kilo-only generator input** (used by `scripts/build-kilo-commands.js` to produce `templates/kilo/commands/install-sesame.md`). When running `/install-sesame` in Claude Code or Claude Desktop, stop after Step 7 and ignore everything below.
+
+<!-- kilo-only:start -->
+
+Install Sesame and register it with Kilo.
+
+1. Check whether Sesame is already installed:
+
+   ```bash
+   SESAME_COMMAND="$HOME/.local/share/sesame/venv/bin/sesame"
+   if [ -x "$SESAME_COMMAND" ]; then
+     echo "Sesame binary found: $SESAME_COMMAND"
+   else
+     echo "Sesame binary not found; continue with installation."
+   fi
+   ```
+
+2. Install Sesame if needed. Verify GitHub CLI authentication first, then download and inspect the installer before executing it:
+
+   ```bash
+   SESAME_COMMAND="$HOME/.local/share/sesame/venv/bin/sesame"
+   if [ -x "$SESAME_COMMAND" ]; then
+     echo "Sesame binary already installed: $SESAME_COMMAND"
+   else
+     gh auth status
+     TMP_INSTALL="$(mktemp)"
+     if ! gh api "repos/Anaconda-Sandbox/sesame/contents/install" -H "Accept: application/vnd.github.raw+json" > "$TMP_INSTALL"; then
+       echo "Installer download failed — check gh auth status and repository access." >&2
+       rm -f "$TMP_INSTALL"
+       exit 1
+     fi
+     if [ ! -s "$TMP_INSTALL" ]; then
+       echo "Installer download failed — installer payload was empty." >&2
+       rm -f "$TMP_INSTALL"
+       exit 1
+     fi
+     less "$TMP_INSTALL"
+     bash "$TMP_INSTALL"
+     INSTALL_EXIT_CODE=$?
+     rm -f "$TMP_INSTALL"
+     if [ "$INSTALL_EXIT_CODE" -ne 0 ]; then
+       echo "Sesame installer failed with exit code $INSTALL_EXIT_CODE. Do not update MCP configuration." >&2
+       exit 1
+     fi
+     if [ ! -x "$SESAME_COMMAND" ]; then
+       echo "Sesame installation completed, but the executable was not found at $SESAME_COMMAND. Do not update MCP configuration; verify the installer output and install location." >&2
+       exit 1
+     fi
+     echo "Sesame binary installed: $SESAME_COMMAND"
+   fi
+   ```
+
+   On Windows, run these commands in PowerShell:
+
+   ```powershell
+   $possibleSesamePaths = @(
+     "$env:LOCALAPPDATA\sesame\venv\Scripts\sesame.exe",
+     "$env:LOCALAPPDATA\Programs\sesame\venv\Scripts\sesame.exe",
+     "$env:LOCALAPPDATA\Programs\Sesame\venv\Scripts\sesame.exe"
+   )
+   $sesameCommand = $possibleSesamePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+   if ($sesameCommand) {
+     Write-Host "Sesame binary already installed: $sesameCommand"
+   } else {
+     gh auth status
+     if ($LASTEXITCODE -ne 0) {
+       Write-Error "GitHub CLI authentication failed."
+       return
+     }
+     $tmpInstall = Join-Path $env:TEMP 'sesame-install.ps1'
+     gh api "repos/Anaconda-Sandbox/sesame/contents/install.ps1" -H "Accept: application/vnd.github.raw+json" | Out-File -FilePath $tmpInstall -Encoding utf8
+     if ($LASTEXITCODE -ne 0 -or -not (Get-Content $tmpInstall -Raw)) {
+       Write-Error "Installer download failed — check gh auth status and repository access."
+       Remove-Item -Path $tmpInstall -Force -ErrorAction SilentlyContinue
+       return
+     }
+     Get-Content $tmpInstall
+     powershell -ExecutionPolicy Bypass -File $tmpInstall
+     $installExitCode = $LASTEXITCODE
+     Remove-Item -Path $tmpInstall -Force -ErrorAction SilentlyContinue
+     if ($installExitCode -ne 0) {
+       Write-Error "Sesame installer failed with exit code $installExitCode. Do not update MCP configuration."
+       return
+     }
+     $sesameCommand = $possibleSesamePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+     if (-not $sesameCommand) {
+       Write-Error "Sesame installation completed, but sesame.exe was not found. Do not update MCP configuration; verify the installer output and install location."
+       return
+     }
+     Write-Host "Sesame binary installed: $sesameCommand"
+   }
+   ```
+
+3. Register Sesame in Kilo. Check these project configuration paths from highest to lowest precedence: `.kilo/kilo.jsonc`, `.kilo/kilo.json`, `kilo.jsonc`, and `kilo.json`.
+
+   - If none exists, create `.kilo/kilo.jsonc` with the standard setup wiring and this MCP entry. Replace `/absolute/path/to/sesame` with the installed Sesame executable's absolute path (for example, `C:\\Users\\you\\AppData\\Local\\sesame\\venv\\Scripts\\sesame.exe`).
+
+     ```jsonc
+     {
+       "$schema": "https://app.kilo.ai/config.json",
+       "skills": { "paths": [".claude/skills"] },
+       "instructions": ["CLAUDE.md", ".kilo/instructions/agent-routing.md"],
+       "mcp": {
+         "sesame": {
+           "type": "local",
+           "command": ["/absolute/path/to/sesame"],
+         },
+       },
+     }
+     ```
+
+   - If a configuration exists, do not edit it. Print this top-level block with the installed Sesame executable's absolute path in `command`, tell the user to merge it by hand, and stop. In this illustrative block, replace `/absolute/path/to/sesame` with that path. The block omits trailing commas so it is valid for either `.json` or `.jsonc`:
+
+     ```jsonc
+     "mcp": {
+       "sesame": {
+         "type": "local",
+         "command": ["/absolute/path/to/sesame"]
+       }
+     }
+     ```
+
+4. Add Sesame to `PATH` if desired, restart Kilo, then run `/mcps` and confirm that `sesame` is enabled.
+
+<!-- kilo-only:end -->

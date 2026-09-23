@@ -28,9 +28,9 @@ Sets the current `Page` instance. **Automatically called by the fixture before e
 **Page file** — setPage() already called by fixture, so page object methods can call utilities directly:
 
 ```typescript
-// tests/pages/home-page.ts
+// tests/pages/ui/home-page.ts
 import { click, expectPageToHaveURL, gotoURL } from '@anaconda/playwright-utils';
-import { urlData } from '@testdata/<module>'; // imports url data
+import { urlData } from '@testdata/ui/<module>'; // imports url data
 
 export class HomePage {
   async navigateToHomePage(): Promise<void> {
@@ -364,7 +364,7 @@ logger.info(`Cookies captured: ${state.cookies?.length ?? 0}`); // log only duri
 
 > Selectors are inlined in some examples below for brevity — real page objects declare every locator as a `private readonly` field (see `references/locators.md` § Locator Declaration: Always Class Fields).
 
-**Page Object (tests/pages/dashboard-page.ts):**
+**Page Object (tests/pages/ui/dashboard-page.ts):**
 
 ```typescript
 import {
@@ -378,7 +378,7 @@ import {
   switchPage,
   switchToDefaultPage,
 } from '@anaconda/playwright-utils';
-import { urlData } from '@testdata/<module>';
+import { urlData } from '@testdata/ui/<module>';
 
 export class DashboardPage {
   async navigateToDashboard() {
@@ -445,7 +445,7 @@ Fixture registration follows the standard 3-file pattern — see the Example Tes
 
 ```typescript
 import { test } from '@fixture';
-import { reviewData } from '@testdata/<module>';
+import { reviewData } from '@testdata/ui/<module>';
 
 test('should review a product in a second tab', async ({ dashboardPage }) => {
   await dashboardPage.navigateToDashboard();
@@ -533,8 +533,8 @@ Auth setup is done in a dedicated setup spec that runs once. All other tests the
 // tests/storage-setup/auth.setup.ts — runs once to capture auth state
 import { test } from '@fixture'; // fixture auto-calls setPage(page)
 import { clickAndNavigate, fill, gotoURL, saveStorageState } from '@anaconda/playwright-utils';
-import { urlData } from '@testdata/<module>';
-import { userData } from '@testdata/<module>';
+import { urlData } from '@testdata/ui/<module>';
+import { userData } from '@testdata/ui/<module>';
 
 test('authenticate and save state', async () => {
   await gotoURL(urlData.loginPageUrl);

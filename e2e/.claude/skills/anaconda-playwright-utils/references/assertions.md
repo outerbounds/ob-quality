@@ -9,7 +9,7 @@ Source: `src/playwright-utils/utils/assert-utils.ts`
 **Important Guidelines:**
 
 - ✅ All assertions go in page object methods (verify*, check* methods) — spec files read like scenarios, only method calls
-- ✅ All test data goes in `tests/testdata/` and is imported
+- ✅ All test data goes in `tests/testdata/ui/` or `tests/testdata/api/` and is imported
 - ✅ Logging and POM rules (`logger`, never `console.log`): SKILL.md § Example Test — Key rules
 
 ### Good Example — Readable Spec (No Assertions in Spec)
@@ -43,7 +43,7 @@ test.describe('Checkout flow @smoke', () => {
 **Page file** — assertions live here with descriptive messages:
 
 ```typescript
-// tests/pages/sauce-demo-products-page.ts
+// tests/pages/ui/sauce-demo-products-page.ts
 import { SMALL_TIMEOUT, expectElementToBeHidden, expectElementToBeVisible } from '@anaconda/playwright-utils';
 
 export class SauceDemoProductsPage {
@@ -63,7 +63,7 @@ export class SauceDemoProductsPage {
 ```
 
 ```typescript
-// tests/pages/sauce-demo-checkout-page.ts
+// tests/pages/ui/sauce-demo-checkout-page.ts
 import { expectElementToContainText } from '@anaconda/playwright-utils';
 
 export class SauceDemoCheckoutPage {
@@ -222,7 +222,7 @@ Alert assertions use the same dialog handling as `acceptAlert`/`getAlertText`: `
 
 ### Dashboard Page with Verification Methods
 
-**Page Object (tests/pages/dashboard-page.ts):**
+**Page Object (tests/pages/ui/dashboard-page.ts):**
 
 ```typescript
 import {
@@ -308,7 +308,7 @@ Raw `expect()` on `APIResponse` objects is the API-testing exception to the `exp
 
 ## Test Data Organization
 
-**Always store test data in `tests/testdata/` folder, not inline in spec files:**
+**Always store test data in `tests/testdata/ui/` or `tests/testdata/api/`, not inline in spec files:**
 
 ```typescript
 // ✓ GOOD: Import from testdata module
@@ -318,7 +318,7 @@ export const testUsers = {
 };
 
 import { test } from '@fixture';
-import { testUsers } from '@testdata/<module>'; // NOTE: replace <module> with your project testdata module (under tests/testdata/)
+import { testUsers } from '@testdata/api/<module>'; // NOTE: replace <module> with your project testdata module (under tests/testdata/api/)
 
 // ✓ GOOD: Page object method returns data; spec only orchestrates, no raw assertions
 test.describe('User API @smoke', () => {
@@ -347,7 +347,7 @@ This keeps specs clean, reuses data across tests, and separates concerns.
 ✓ **Do:** Combine related assertions into single methods for readability
 ✓ **Do:** Add descriptive error messages to assertions
 ✓ **Do:** Return data from verification methods if needed by tests
-✓ **Do:** Store test data in `tests/testdata/` and import it
+✓ **Do:** Store test data in `tests/testdata/ui/` or `tests/testdata/api/` and import it
 
 ✗ **Don't:** Put assertions directly in spec files
 ✗ **Don't:** Repeat assertion patterns across multiple tests

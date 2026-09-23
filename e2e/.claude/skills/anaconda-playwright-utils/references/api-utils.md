@@ -296,11 +296,11 @@ export class UserAPI {
 
 ```typescript
 import { test } from '@fixture';
-import { testUsers } from '@testdata/<module>'; // NOTE: replace <module> with your project testdata module (under tests/testdata/)
+import { testUsers } from '@testdata/api/<module>'; // NOTE: replace <module> with your project testdata module (under tests/testdata/api/)
 
 test.describe('User API @smoke', () => {
   test('should create and verify user', async ({ userAPI, userPage }) => {
-    // Create user via API — userAPI is injected by the fixture; test data lives in tests/testdata/
+    // Create user via API — userAPI is injected by the fixture; test data lives in tests/testdata/api/
     const newUser = await userAPI.createUser(testUsers.validUser);
 
     // Verify in UI via page object — no raw utility calls in specs
@@ -317,7 +317,7 @@ test.describe('User API @smoke', () => {
 API requests automatically use the same request context as the browser, so cookies and authentication persist:
 
 ```typescript
-// tests/pages/auth-api-page.ts
+// tests/pages/ui/auth-api-page.ts
 import { clickAndNavigate, expect, fill, getRequest, gotoURL } from '@anaconda/playwright-utils';
 
 export class AuthAPIPage {

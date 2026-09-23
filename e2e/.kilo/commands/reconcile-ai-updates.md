@@ -1,10 +1,8 @@
 ---
 description: Reconcile AI setup updates with a safe two-pass anaconda-pw-setup workflow. Pass 1 keeps your edits and refreshes unedited files; the kept/untracked AI files are staged as a recovery baseline; pass 2 overwrites them to upstream; each overridden file is then merged three-way (upstream base + restored project facts from the profile) and left unstaged for review. Project-agnostic — all project specifics come from .claude/reconcile-ai-profile.json.
-argument-hint: '[full|reconcile-only|prepare-only|report] [--no-stage] [--no-overwrite]'
-allowed-tools: Read, Grep, Glob, Edit, Write, Bash(npx anaconda-pw-setup:*), Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git show:*), Bash(git rev-parse:*), Bash(git ls-files:*), Bash(git log:*), Bash(node:*), Bash(date:*), Bash(mkdir:*), Bash(rg:*), Bash(./node_modules/.bin/prettier:*), Bash(npx prettier:*)
-model: sonnet
-version: 2.1.0
 ---
+
+<!-- generated from templates/commands/reconcile-ai-updates.md by scripts/build-kilo-commands.js — do not edit; version: 2.1.0 -->
 
 Reconcile AI file updates installed by `@anaconda/playwright-utils` (the `npx anaconda-pw-setup` AI files: `CLAUDE.md`, `AGENTS.md`, `.claude/**`, `.kilo/agents/**`, `.kilo/commands/**`, `.kilo/instructions/**`). `.kilo/kilo.jsonc` is out of scope because it is a create-once user config with no upstream counterpart. `.claude/reconcile-ai-profile.json` is also consumer-owned: setup preserves its project facts and custom rules, and backfills missing package-managed scope entries only when `managePackageOwnedScope` is `true`.
 
@@ -177,7 +175,7 @@ git diff -- <path>
 git show :./<path>
 ```
 
-Also `Read` the working-tree file.
+Also `read` the working-tree file.
 
 | Source                   | Meaning                                                       |
 | ------------------------ | ------------------------------------------------------------- |

@@ -1,10 +1,8 @@
 ---
 description: Generate a pre-filled GitHub PR URL (regular or draft-ready), or update an existing PR's title and description
-argument-hint: '[draft|update [pr-url]]'
-model: sonnet
-allowed-tools: Bash(git branch:*), Bash(git symbolic-ref:*), Bash(git remote:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git log:*), Bash(git diff:*), Bash(node:*), Bash(gh auth status:*), Bash(gh pr view:*), Bash(gh pr edit:*)
-version: 2.1.0
 ---
+
+<!-- generated from templates/commands/raise-pr.md by scripts/build-kilo-commands.js — do not edit; version: 2.1.0 -->
 
 Generate a pre-filled GitHub compare URL so the user can review the title and description, edit if needed, and click **Create pull request** themselves. In `update` mode, regenerate and apply both the title and description to the PR it finds for the current branch. Do NOT run `gh pr create`, create a draft PR, commit, push, or modify any repository file. Default/draft mode must output a pre-filled page link plus the generated title and description for review; no PR exists until the user clicks GitHub's final create button. Update mode may modify only the existing PR's title and description via `gh pr edit`.
 

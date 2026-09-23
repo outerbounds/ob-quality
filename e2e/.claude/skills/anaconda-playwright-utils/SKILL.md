@@ -10,7 +10,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-version: 1.17.1
+version: 2.1.0
 ---
 
 # @anaconda/playwright-utils
@@ -145,9 +145,10 @@ Playwright auto-retrying assertions.
 
 These exports are not counted in the 115 Playwright utility functions.
 
-| Export         | Signature | Description                                        |
-| -------------- | --------- | -------------------------------------------------- |
-| `escapeRegExp` | `(value)` | Escape regex metacharacters for literal RegExp use |
+| Export         | Signature            | Description                                                                                                                                                                                                          |
+| -------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `escapeRegExp` | `(value)`            | Escape regex metacharacters for literal RegExp use                                                                                                                                                                   |
+| `expect`       | `(actual, message?)` | Playwright's `expect`, re-exported — for values no `expect*` helper covers (parsed API response bodies, computed values). Never for locators or page state: use the `expect*` functions above. Never in a spec file. |
 
 ### Locator Utils (`locator-utils`)
 
@@ -265,7 +266,7 @@ import {
 
 Tests are always structured with three files: a **Page Object class**, a **Fixture** registration, and a **Spec** file. All actions and assertions live in the page object class — the spec only calls page object methods via injected fixtures.
 
-### Page Object Class (`tests/pages/login-page.ts`)
+### Page Object Class (`tests/pages/ui/login-page.ts`)
 
 ```typescript
 import {
@@ -279,8 +280,8 @@ import {
   getLocatorByRole,
   gotoURL,
 } from '@anaconda/playwright-utils';
-import { urlData } from '@testdata/<url-module>'; // NOTE: replace <url-module> with your project URL testdata module (under tests/testdata/)
-import { invalidUser, validUser } from '@testdata/<user-module>'; // NOTE: replace <user-module> with your project user testdata module (under tests/testdata/)
+import { urlData } from '@testdata/ui/<url-module>'; // NOTE: replace <url-module> with your project URL testdata module (under tests/testdata/ui/)
+import { invalidUser, validUser } from '@testdata/ui/<user-module>'; // NOTE: replace <user-module> with your project user testdata module (under tests/testdata/ui/)
 
 export class LoginPage {
   // Static selectors — raw CSS/XPath strings (no library call at class instantiation)
@@ -326,8 +327,8 @@ export class LoginPage {
 
 ```typescript
 import { test as baseTest } from '@anaconda/playwright-utils';
-import { LoginPage } from '@pages/login-page';
-import { ProductsPage } from '@pages/products-page';
+import { LoginPage } from '@pages/ui/login-page';
+import { ProductsPage } from '@pages/ui/products-page';
 
 export const test = baseTest.extend<{
   loginPage: LoginPage;
@@ -450,11 +451,11 @@ When writing test code, respect this order:
 ### Project Skill Discovery (BLOCKING — do this FIRST, before any other reference)
 
 A repo MAY ship a **project router skill**: a `SKILL.md` under `.claude/skills/`
-whose directory name is NOT a distributed common skill
-{`anaconda-playwright-utils`, `playwright-cli`, `qa-automation-quality`}. It encodes
-this repo's navigation, auth, feature-flag, known-locator, and planning context and
-usually exposes an **Intent-routing** table. On conflict it OVERRIDES library/tool
-defaults.
+whose directory name is NOT one of the distributed common skills —
+`anaconda-playwright-utils`, `api-test-automation`, `playwright-cli`, or
+`qa-automation-quality`. It encodes this repo's navigation, auth, feature-flag,
+known-locator, and planning context and usually exposes an **Intent-routing**
+table. On conflict it OVERRIDES library/tool defaults.
 
 Run once, before you explore, survey coverage, plan, write, or diagnose:
 

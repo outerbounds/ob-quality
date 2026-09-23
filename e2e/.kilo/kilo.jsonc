@@ -1,0 +1,9 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  // Installed by @anaconda/playwright-utils (npx anaconda-pw-setup).
+  // Skills and CLAUDE.md live in the Claude tree and are the single source of truth.
+  // agent-routing.md forces every planner/generator/healer request through task —
+  // never handled inline by the main session.
+  "skills": { "paths": [".claude/skills"] },
+  "instructions": ["CLAUDE.md", ".kilo/instructions/agent-routing.md"],
+}
