@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 /**
  * playwright.config.ts: This module is responsible for configuring the Playwright test runner.
  * It includes settings for test execution, browser configuration, and environment variables.
@@ -8,12 +6,17 @@ import 'dotenv/config';
 
 import { AnacondaConfigDefaults, AnacondaProjectDefaults } from '@anaconda/playwright-utils';
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
 import path from 'node:path';
+
+// Resolve .env next to this config rather than from the current working directory,
+// so runs launched from the repository root pick up the same environment as runs from e2e/.
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 //To run against the local environment, set the URL to your local server like 'https://localhost:9002'
 //You can override the BASE_URL by setting the URL environment variable in .env file or passing it as a command line argument.
 
-export const BASE_URL = process.env.URL ?? 'https://ui.dev-valay.outerbounds.xyz/dashboard';
+export const BASE_URL = process.env.URL ?? 'https://ui.dev-coldbrewcrew.outerbounds.xyz/dashboard';
 export const STORAGE_STATE_PATH = path.join(__dirname, 'tests/storage-setup/.auth');
 
 export default defineConfig({

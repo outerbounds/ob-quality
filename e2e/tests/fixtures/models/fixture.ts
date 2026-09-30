@@ -1,13 +1,13 @@
-import { OBPage } from '@pages/models/ob-page';
+import { ModelPage } from '@pages/models/model-page';
 import { test as baseTest, expect } from '@page-setup';
 
 type ModelFixtures = {
-  obPage: OBPage;
+  modelPage: ModelPage;
 };
 
 export const test = baseTest.extend<ModelFixtures>({
-  obPage: async ({}, use) => {
-    await use(new OBPage());
+  modelPage: async ({}, use) => {
+    await use(new ModelPage());
   },
 });
 

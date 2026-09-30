@@ -8,7 +8,7 @@ import path from 'node:path';
 const normalizeUrl = (url: string): string => (url.endsWith('/') ? url.slice(0, -1) : url);
 
 const AUTH_BASE_URL = normalizeUrl(process.env.URL_AUTH ?? 'https://auth.anaconda.com');
-const APP_URL = normalizeUrl(process.env.URL ?? 'https://ui.dev-valay.outerbounds.xyz/dashboard');
+const APP_URL = normalizeUrl(process.env.URL ?? 'https://ui.dev-coldbrewcrew.outerbounds.xyz/dashboard');
 
 interface LoginResponse {
   redirect: string;
