@@ -13,7 +13,7 @@ import path from 'node:path';
 //To run against the local environment, set the URL to your local server like 'https://localhost:9002'
 //You can override the BASE_URL by setting the URL environment variable in .env file or passing it as a command line argument.
 
-export const BASE_URL = process.env.URL ?? 'https://ui.dev-valay.outerbounds.xyz/dashboard';
+export const BASE_URL = process.env.URL ?? 'https://ui.dev-coldbrewcrew.outerbounds.xyz/dashboard';
 export const STORAGE_STATE_PATH = path.join(__dirname, 'tests/storage-setup/.auth');
 
 export default defineConfig({
