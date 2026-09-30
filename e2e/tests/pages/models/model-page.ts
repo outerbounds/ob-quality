@@ -10,6 +10,9 @@ import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
 import { catalogData } from '@testdata/models/catalog-test-data';
 
+/** The configured URL may or may not end with a slash; normalize once so every route check agrees. */
+const DASHBOARD_URL = BASE_URL.replace(/\/$/, '');
+
 export class ModelPage {
   private readonly resourcesButton = (): Locator =>
     LocatorUtils.getLocatorByRole('navigation').getByRole('button', { name: 'Resources', exact: true });
@@ -22,20 +25,19 @@ export class ModelPage {
   private readonly modelsTab = (): Locator => this.catalog().locator('button[title="models"]');
   private readonly chartTab = (): Locator => this.catalog().locator('button[title="model-chart"]');
   private readonly licensesTab = (): Locator => this.catalog().locator('button[title="licenses"]');
-  private readonly selectedTab = (): Locator => this.catalog().locator('button.selected');
   private readonly searchInput = (): Locator => LocatorUtils.getLocatorByTestId('catalog-search').locator('input');
   private readonly allFiltersButton = (): Locator =>
     LocatorUtils.getLocatorByTestId('catalog-all-filters').locator('button');
   private readonly chooseColumnsButton = (): Locator => this.catalog().locator('button[aria-label="Choose columns"]');
   private modelPageURL(project: string): string {
-    return `${BASE_URL.replace(/\/$/, '')}/catalog/p/${project}`;
+    return `${DASHBOARD_URL}/catalog/p/${project}`;
   }
   public async navigateToDashboard(): Promise<void> {
-    await PageUtils.gotoURL(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await PageUtils.gotoURL(DASHBOARD_URL, { waitUntil: 'domcontentloaded' });
   }
   /** Accepts dashboard subroutes and query strings while keeping the configured route boundary. */
   public async verifyDashboardURL(): Promise<void> {
-    await AssertUtils.expectPageToHaveURL(new RegExp(`^${escapeRegExp(BASE_URL)}(?:/|$|\\?)`), {
+    await AssertUtils.expectPageToHaveURL(new RegExp(`^${escapeRegExp(DASHBOARD_URL)}(?:/|$|\\?)`), {
       message: 'Authenticated user should remain on the configured dashboard route',
     });
   }
@@ -57,8 +59,8 @@ export class ModelPage {
   public async clickModelLink(): Promise<void> {
     await ActionUtils.clickAndNavigate(this.modelLink());
   }
-  public async verifyModelPageURL(project: string = catalogData.project): Promise<void> {
-    await AssertUtils.expectPageToHaveURL(this.modelPageURL(project), {
+  public async verifyModelPageURL(): Promise<void> {
+    await AssertUtils.expectPageToHaveURL(this.modelPageURL(catalogData.project), {
       message: 'Models should open the requested project catalog',
     });
   }
@@ -87,8 +89,9 @@ export class ModelPage {
       message: 'Licenses tab should be visible',
     });
   }
+  /** The active tab is marked only by a "selected" class; there is no aria-selected attribute. */
   public async verifyModelsTabSelected(): Promise<void> {
-    await AssertUtils.expectElementToBeVisible(this.modelsTab().and(this.selectedTab()), {
+    await AssertUtils.expectElementToHaveClass(this.modelsTab(), /\bselected\b/, {
       message: 'Models tab should be the selected tab',
     });
   }
