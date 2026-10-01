@@ -27,4 +27,15 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyAllFiltersButton();
     await modelPage.verifyChooseColumnsButton();
   });
+  test('Checking an All Filters option shows its filter on the filter bar', async ({ modelPage }) => {
+    // The open menu should list a labelled checkbox for every filter.
+    await modelPage.verifyAllFiltersButton();
+    await modelPage.openAllFiltersMenu();
+    await modelPage.verifyAllFiltersMenuExpanded();
+    await modelPage.verifyAllFilterOptionsChecked();
+    // All eight ship checked, so every filter they control starts out on the filter bar.
+    await modelPage.verifyAllFilterButtonsDisplayed();
+    // Clearing an option hides its filter; checking it again brings the filter back.
+    await modelPage.verifyEveryFilterOptionTogglesItsFilter();
+  });
 });
