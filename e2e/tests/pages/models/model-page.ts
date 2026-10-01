@@ -142,17 +142,13 @@ export class ModelPage {
       await AssertUtils.expectElementToHaveText(this.filterOptionLabel(checkbox), label, {
         message: `${label} option should be labelled "${label}"`,
       });
-      await AssertUtils.expectElementToBeChecked(this.filterOptionInput(checkbox), {
-        message: `${label} option should be checked by default`,
-      });
+      await this.verifyFilterOptionChecked(label, checkbox);
     }
   }
   /** Mirror of the default menu state: a checked option means its filter sits on the filter bar. */
   public async verifyAllFilterButtonsDisplayed(): Promise<void> {
     for (const { label } of catalogFilterOptions) {
-      await AssertUtils.expectElementToBeVisible(this.filterButton(label), {
-        message: `${label} filter should be displayed on the catalog filter bar`,
-      });
+      await this.verifyFilterButtonDisplayed(label);
     }
   }
   /**
@@ -176,22 +172,22 @@ export class ModelPage {
   }
   private async verifyFilterOptionChecked(label: string, checkbox: string): Promise<void> {
     await AssertUtils.expectElementToBeChecked(this.filterOptionInput(checkbox), {
-      message: `${label} option should be checked after selecting it`,
+      message: `${label} option should be checked`,
     });
   }
   private async verifyFilterOptionNotChecked(label: string, checkbox: string): Promise<void> {
     await AssertUtils.expectElementNotToBeChecked(this.filterOptionInput(checkbox), {
-      message: `${label} option should be unchecked after clearing it`,
+      message: `${label} option should be unchecked`,
     });
   }
   private async verifyFilterButtonDisplayed(label: string): Promise<void> {
     await AssertUtils.expectElementToBeVisible(this.filterButton(label), {
-      message: `${label} filter should be displayed on the toolbar while its option is checked`,
+      message: `${label} filter should be displayed on the catalog filter bar`,
     });
   }
   private async verifyFilterButtonHidden(label: string): Promise<void> {
     await AssertUtils.expectElementToBeHidden(this.filterButton(label), {
-      message: `${label} filter should be removed from the toolbar while its option is unchecked`,
+      message: `${label} filter should be removed from the catalog filter bar`,
     });
   }
 }
