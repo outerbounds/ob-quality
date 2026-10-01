@@ -4,11 +4,12 @@ import {
   ElementUtils,
   LocatorUtils,
   PageUtils,
+  STANDARD_TIMEOUT,
   escapeRegExp,
 } from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
-import { catalogData } from '@testdata/models/catalog-test-data';
+import { catalogData, catalogFilterOptions } from '@testdata/models/catalog-test-data';
 
 /** The configured URL may or may not end with a slash; normalize once so every route check agrees. */
 const DASHBOARD_URL = BASE_URL.replace(/\/$/, '');
@@ -29,6 +30,15 @@ export class ModelPage {
   private readonly allFiltersButton = (): Locator =>
     LocatorUtils.getLocatorByTestId('catalog-all-filters').locator('button');
   private readonly chooseColumnsButton = (): Locator => this.catalog().locator('button[aria-label="Choose columns"]');
+  /** Each filter's accessible name is unique inside the catalog, so no toolbar-level anchor is needed. */
+  private readonly filterButton = (label: string): Locator =>
+    this.catalog().getByRole('button', { name: label, exact: true });
+  /** The All Filters menu is portaled to <body>, so each row is reachable only by its own test id. */
+  private readonly filterOptionRow = (checkbox: string): Locator =>
+    LocatorUtils.getLocator(`[data-testid="input_checkbox_${checkbox}"]`);
+  private readonly filterOptionInput = (checkbox: string): Locator => this.filterOptionRow(checkbox).locator('input');
+  /** The option's visible text sits in the only titled node of its row. */
+  private readonly filterOptionLabel = (checkbox: string): Locator => this.filterOptionRow(checkbox).locator('[title]');
   private modelPageURL(project: string): string {
     return `${DASHBOARD_URL}/catalog/p/${project}`;
   }
@@ -41,9 +51,11 @@ export class ModelPage {
       message: 'Authenticated user should remain on the configured dashboard route',
     });
   }
+  /** First assertion after login — allow longer than the 5s default expect timeout for the shell to render. */
   public async verifyResourcesButton(): Promise<void> {
     await AssertUtils.expectElementToBeVisible(this.resourcesButton(), {
       message: 'Resources navigation should be visible',
+      timeout: STANDARD_TIMEOUT,
     });
   }
   public async clickResourcesButton(): Promise<void> {
@@ -57,7 +69,7 @@ export class ModelPage {
     });
   }
   public async clickModelLink(): Promise<void> {
-    await ActionUtils.clickAndNavigate(this.modelLink());
+    await ActionUtils.click(this.modelLink());
   }
   public async verifyModelPageURL(): Promise<void> {
     await AssertUtils.expectPageToHaveURL(this.modelPageURL(catalogData.project), {
@@ -108,6 +120,81 @@ export class ModelPage {
   public async verifyChooseColumnsButton(): Promise<void> {
     await AssertUtils.expectElementToBeVisible(this.chooseColumnsButton(), {
       message: 'Choose columns button should be visible',
+    });
+  }
+  public async verifyAllFiltersMenuExpanded(): Promise<void> {
+    await AssertUtils.expectElementToHaveAttribute(this.allFiltersButton(), 'aria-expanded', 'true', {
+      message: 'All Filters button should report its menu as expanded',
+    });
+  }
+  /** Toggling an option can dismiss the menu, so reopen it instead of assuming it stayed up. */
+  public async openAllFiltersMenu(): Promise<void> {
+    if ((await ElementUtils.getAttribute(this.allFiltersButton(), 'aria-expanded')) !== 'true') {
+      await ActionUtils.click(this.allFiltersButton());
+    }
+  }
+  /** Asserts presence and labelling only — the checked state is read per run, never assumed. */
+  public async verifyAllFilterOptionsDisplayed(): Promise<void> {
+    for (const { label, checkbox } of catalogFilterOptions) {
+      await AssertUtils.expectElementToBeVisible(this.filterOptionRow(checkbox), {
+        message: `All Filters menu should list a checkbox for the ${label} option`,
+      });
+      await AssertUtils.expectElementToHaveText(this.filterOptionLabel(checkbox), label, {
+        message: `${label} option should be labelled "${label}"`,
+      });
+    }
+  }
+  /**
+   * Walks every option through its full contract: a checked filter can be cleared and leaves the filter
+   * bar, checking it puts the filter back, and the option ends in the state it was found in. Actions and
+   * assertions interleave here because each branch depends on the checked state read at runtime.
+   */
+  public async verifyEveryFilterOptionControlsItsFilter(): Promise<void> {
+    for (const { label, checkbox } of catalogFilterOptions) {
+      await this.openAllFiltersMenu();
+      const wasChecked = await this.isFilterOptionChecked(checkbox);
+      // Start from unchecked so the filter is proven absent before the check that should reveal it.
+      if (wasChecked) {
+        await this.clickFilterOption(checkbox);
+        await this.verifyFilterOptionNotChecked(label, checkbox);
+        await this.verifyFilterButtonHidden(label);
+      }
+      await this.openAllFiltersMenu();
+      await this.clickFilterOption(checkbox);
+      await this.verifyFilterOptionChecked(label, checkbox);
+      await this.verifyFilterButtonDisplayed(label);
+      // Leave the menu as it was found so every option is tested from the same baseline.
+      if (!wasChecked) {
+        await this.openAllFiltersMenu();
+        await this.clickFilterOption(checkbox);
+        await this.verifyFilterOptionNotChecked(label, checkbox);
+      }
+    }
+  }
+  private async isFilterOptionChecked(checkbox: string): Promise<boolean> {
+    return await ElementUtils.isElementChecked(this.filterOptionInput(checkbox));
+  }
+  private async clickFilterOption(checkbox: string): Promise<void> {
+    await ActionUtils.click(this.filterOptionRow(checkbox));
+  }
+  private async verifyFilterOptionChecked(label: string, checkbox: string): Promise<void> {
+    await AssertUtils.expectElementToBeChecked(this.filterOptionInput(checkbox), {
+      message: `${label} option should be checked after selecting it`,
+    });
+  }
+  private async verifyFilterOptionNotChecked(label: string, checkbox: string): Promise<void> {
+    await AssertUtils.expectElementNotToBeChecked(this.filterOptionInput(checkbox), {
+      message: `${label} option should be unchecked after clearing it`,
+    });
+  }
+  private async verifyFilterButtonDisplayed(label: string): Promise<void> {
+    await AssertUtils.expectElementToBeVisible(this.filterButton(label), {
+      message: `${label} filter should be displayed on the toolbar while its option is checked`,
+    });
+  }
+  private async verifyFilterButtonHidden(label: string): Promise<void> {
+    await AssertUtils.expectElementToBeHidden(this.filterButton(label), {
+      message: `${label} filter should be removed from the toolbar while its option is unchecked`,
     });
   }
 }
