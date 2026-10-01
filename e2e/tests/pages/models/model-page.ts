@@ -133,8 +133,8 @@ export class ModelPage {
       await ActionUtils.click(this.allFiltersButton());
     }
   }
-  /** Asserts presence and labelling only — the checked state is read per run, never assumed. */
-  public async verifyAllFilterOptionsDisplayed(): Promise<void> {
+  /** Every option ships checked, so the open menu lists all filters, labelled and selected. */
+  public async verifyAllFilterOptionsChecked(): Promise<void> {
     for (const { label, checkbox } of catalogFilterOptions) {
       await AssertUtils.expectElementToBeVisible(this.filterOptionRow(checkbox), {
         message: `All Filters menu should list a checkbox for the ${label} option`,
@@ -142,37 +142,34 @@ export class ModelPage {
       await AssertUtils.expectElementToHaveText(this.filterOptionLabel(checkbox), label, {
         message: `${label} option should be labelled "${label}"`,
       });
+      await AssertUtils.expectElementToBeChecked(this.filterOptionInput(checkbox), {
+        message: `${label} option should be checked by default`,
+      });
+    }
+  }
+  /** Mirror of the default menu state: a checked option means its filter sits on the filter bar. */
+  public async verifyAllFilterButtonsDisplayed(): Promise<void> {
+    for (const { label } of catalogFilterOptions) {
+      await AssertUtils.expectElementToBeVisible(this.filterButton(label), {
+        message: `${label} filter should be displayed on the catalog filter bar`,
+      });
     }
   }
   /**
-   * Walks every option through its full contract: a checked filter can be cleared and leaves the filter
-   * bar, checking it puts the filter back, and the option ends in the state it was found in. Actions and
-   * assertions interleave here because each branch depends on the checked state read at runtime.
+   * Clearing an option removes its filter from the filter bar; checking it again restores the filter and
+   * returns the menu to its default state, so each option starts from the same baseline.
    */
-  public async verifyEveryFilterOptionControlsItsFilter(): Promise<void> {
+  public async verifyEveryFilterOptionTogglesItsFilter(): Promise<void> {
     for (const { label, checkbox } of catalogFilterOptions) {
       await this.openAllFiltersMenu();
-      const wasChecked = await this.isFilterOptionChecked(checkbox);
-      // Start from unchecked so the filter is proven absent before the check that should reveal it.
-      if (wasChecked) {
-        await this.clickFilterOption(checkbox);
-        await this.verifyFilterOptionNotChecked(label, checkbox);
-        await this.verifyFilterButtonHidden(label);
-      }
+      await this.clickFilterOption(checkbox);
+      await this.verifyFilterOptionNotChecked(label, checkbox);
+      await this.verifyFilterButtonHidden(label);
       await this.openAllFiltersMenu();
       await this.clickFilterOption(checkbox);
       await this.verifyFilterOptionChecked(label, checkbox);
       await this.verifyFilterButtonDisplayed(label);
-      // Leave the menu as it was found so every option is tested from the same baseline.
-      if (!wasChecked) {
-        await this.openAllFiltersMenu();
-        await this.clickFilterOption(checkbox);
-        await this.verifyFilterOptionNotChecked(label, checkbox);
-      }
     }
-  }
-  private async isFilterOptionChecked(checkbox: string): Promise<boolean> {
-    return await ElementUtils.isElementChecked(this.filterOptionInput(checkbox));
   }
   private async clickFilterOption(checkbox: string): Promise<void> {
     await ActionUtils.click(this.filterOptionRow(checkbox));

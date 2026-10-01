@@ -32,8 +32,10 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyAllFiltersButton();
     await modelPage.openAllFiltersMenu();
     await modelPage.verifyAllFiltersMenuExpanded();
-    await modelPage.verifyAllFilterOptionsDisplayed();
-    // Each option is read before it is toggled, so no initial checked state is assumed.
-    await modelPage.verifyEveryFilterOptionControlsItsFilter();
+    await modelPage.verifyAllFilterOptionsChecked();
+    // All eight ship checked, so every filter they control starts out on the filter bar.
+    await modelPage.verifyAllFilterButtonsDisplayed();
+    // Clearing an option hides its filter; checking it again brings the filter back.
+    await modelPage.verifyEveryFilterOptionTogglesItsFilter();
   });
 });
