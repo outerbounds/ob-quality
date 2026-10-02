@@ -9,7 +9,12 @@ import {
 } from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
-import { catalogData, catalogFilterOptions } from '@testdata/models/catalog-test-data';
+import {
+  catalogColumnOptions,
+  catalogData,
+  catalogFilterOptions,
+  catalogFixedColumn,
+} from '@testdata/models/catalog-test-data';
 
 /** The configured URL may or may not end with a slash; normalize once so every route check agrees. */
 const DASHBOARD_URL = BASE_URL.replace(/\/$/, '');
@@ -39,6 +44,13 @@ export class ModelPage {
   private readonly filterOptionInput = (checkbox: string): Locator => this.filterOptionRow(checkbox).locator('input');
   /** The option's visible text sits in the only titled node of its row. */
   private readonly filterOptionLabel = (checkbox: string): Locator => this.filterOptionRow(checkbox).locator('[title]');
+  /** The Choose columns menu is portaled to <body>; its rows use the column label verbatim as the test id. */
+  private readonly columnOptionRow = (label: string): Locator =>
+    LocatorUtils.getLocator(`[data-testid="input_checkbox_${label}"]`);
+  private readonly columnOptionInput = (label: string): Locator => this.columnOptionRow(label).locator('input');
+  /** Table headers expose no data attribute, so the column role plus its name is the only stable handle. */
+  private readonly columnHeader = (label: string): Locator =>
+    this.catalog().getByRole('columnheader', { name: label, exact: true });
   private modelPageURL(project: string): string {
     return `${DASHBOARD_URL}/catalog/p/${project}`;
   }
@@ -188,6 +200,72 @@ export class ModelPage {
   private async verifyFilterButtonHidden(label: string): Promise<void> {
     await AssertUtils.expectElementToBeHidden(this.filterButton(label), {
       message: `${label} filter should be removed from the catalog filter bar`,
+    });
+  }
+  // Open the selector if it is currently closed.
+  public async openColumnSelector(): Promise<void> {
+    if ((await ElementUtils.getAttribute(this.chooseColumnsButton(), 'aria-expanded')) !== 'true') {
+      await ActionUtils.click(this.chooseColumnsButton());
+    }
+  }
+  public async verifyColumnSelectorExpanded(): Promise<void> {
+    await AssertUtils.expectElementToHaveAttribute(this.chooseColumnsButton(), 'aria-expanded', 'true', {
+      message: 'Choose columns button should report its menu as expanded',
+    });
+  }
+  /**
+   * Which options are selected is persisted user state, so each option's state is read rather than assumed:
+   * an already-selected one is cleared first to prove its column goes away, then selecting it must bring the
+   * column back. Every option is left as it was found, so the options stay independent of one another.
+   */
+  public async verifyEveryColumnOptionTogglesItsColumn(): Promise<void> {
+    for (const label of catalogColumnOptions) {
+      await this.openColumnSelector();
+      const wasSelected = await this.isColumnOptionSelected(label);
+      if (wasSelected) {
+        await this.clickColumnOption(label);
+        await this.verifyColumnRemoved(label);
+        await this.openColumnSelector();
+      }
+      await this.clickColumnOption(label);
+      await this.verifyColumnAdded(label);
+      if (!wasSelected) {
+        await this.openColumnSelector();
+        await this.clickColumnOption(label);
+        await this.verifyColumnRemoved(label);
+      }
+    }
+  }
+  private async clickColumnOption(label: string): Promise<void> {
+    await ActionUtils.click(this.columnOptionRow(label));
+  }
+  /** Reads the option's live state, so callers never have to assume which columns an environment ships. */
+  private async isColumnOptionSelected(label: string): Promise<boolean> {
+    return await ElementUtils.isElementChecked(this.columnOptionInput(label));
+  }
+  /** A checked option and its rendered column are two halves of the same state. */
+  private async verifyColumnAdded(label: string): Promise<void> {
+    await AssertUtils.expectElementToBeChecked(this.columnOptionInput(label), {
+      message: `${label} option should be checked`,
+    });
+    await AssertUtils.expectElementToBeVisible(this.columnHeader(label), {
+      message: `${label} column should be displayed in the model table`,
+    });
+    await this.verifyFixedColumnDisplayed();
+  }
+  private async verifyColumnRemoved(label: string): Promise<void> {
+    await AssertUtils.expectElementNotToBeChecked(this.columnOptionInput(label), {
+      message: `${label} option should be unchecked`,
+    });
+    await AssertUtils.expectElementToBeHidden(this.columnHeader(label), {
+      message: `${label} column should be removed from the model table`,
+    });
+    await this.verifyFixedColumnDisplayed();
+  }
+  /** The fixed column has no option in the menu, so no toggle may remove it from the table. */
+  private async verifyFixedColumnDisplayed(): Promise<void> {
+    await AssertUtils.expectElementToBeVisible(this.columnHeader(catalogFixedColumn), {
+      message: `${catalogFixedColumn} column should remain displayed in the model table`,
     });
   }
 }
