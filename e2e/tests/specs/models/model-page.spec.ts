@@ -15,6 +15,7 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.clickModelLink();
     await modelPage.verifyModelPageURL();
   });
+
   test('Displays catalog tabs and controls with Models selected', async ({ modelPage }) => {
     // Verify the page heading, its model count, and every catalog tab, with Models active on first load.
     await modelPage.verifyModelHeader();
@@ -27,6 +28,7 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyAllFiltersButton();
     await modelPage.verifyChooseColumnsButton();
   });
+
   test('Checking an All Filters option shows its filter on the filter bar', async ({ modelPage }) => {
     // The open menu should list a labelled checkbox for every filter.
     await modelPage.verifyAllFiltersButton();
@@ -37,5 +39,13 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyAllFilterButtonsDisplayed();
     // Clearing an option hides its filter; checking it again brings the filter back.
     await modelPage.verifyEveryFilterOptionTogglesItsFilter();
+  });
+
+  test('Column selector options show and hide their corresponding table columns', async ({ modelPage }) => {
+    await modelPage.verifyChooseColumnsButton();
+    await modelPage.openColumnSelector();
+    await modelPage.verifyColumnSelectorExpanded();
+    // Whatever each option's current state, checking it shows its column and clearing it hides the column.
+    await modelPage.verifyEveryColumnOptionTogglesItsColumn();
   });
 });
