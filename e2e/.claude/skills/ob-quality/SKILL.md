@@ -1,6 +1,6 @@
 ---
 name: ob-quality
-description: 'Repository routing for ob-quality Playwright planning, generation, healing, and review. Use before working with model or package tests to select the correct domain folders, fixture alias, test data, page objects, specs, and test plans.'
+description: 'Repository routing for ob-quality Playwright planning, generation, healing, and review. Use before working with model, package, or perimeter tests to select the correct domain folders, fixture alias, test data, page objects, specs, and test plans.'
 user-invocable: false
 ---
 
@@ -20,7 +20,7 @@ This repository separates Playwright artifacts by product domain. These rules ov
 
 Before searching tests, writing a plan, or changing test code:
 
-1. Classify the work as `models` or `packages` from the request, target URL, existing plan, or existing spec path.
+1. Classify the work as `models`, `packages`, or `perimeters` from the request, target URL, existing plan, or existing spec path.
 2. Keep every domain-owned artifact in that domain's subtree.
 3. If the domain remains ambiguous, ask one focused question before writing files.
 4. Treat `test-setup/` and `tests/storage-setup/` as shared infrastructure only; do not place feature code there.
