@@ -162,9 +162,16 @@ export class ModelPage {
     });
   }
 
-  /** Toggling an option can dismiss the menu, so reopen it instead of assuming it stayed up. */
+  // Open the menu if it is currently closed; its own button is the only thing that closes it again.
   public async openAllFiltersMenu(): Promise<void> {
     if ((await ElementUtils.getAttribute(this.allFiltersButton(), 'aria-expanded')) !== 'true') {
+      await ActionUtils.click(this.allFiltersButton());
+    }
+  }
+
+  // Close the menu if it is currently open, so it stops overlaying the toolbar.
+  private async closeAllFiltersMenu(): Promise<void> {
+    if ((await ElementUtils.getAttribute(this.allFiltersButton(), 'aria-expanded')) === 'true') {
       await ActionUtils.click(this.allFiltersButton());
     }
   }
@@ -194,18 +201,17 @@ export class ModelPage {
    * returns the menu to its default state, so each option starts from the same baseline.
    */
   public async verifyEveryFilterOptionTogglesItsFilter(): Promise<void> {
+    // The menu stays up through every checkbox click, so it is opened once and closed at the end.
+    await this.openAllFiltersMenu();
     for (const { label, checkbox } of catalogFilterOptions) {
-      await this.openAllFiltersMenu();
       await this.clickMenuOption(checkbox);
-      // Reopened before every checkbox assertion, so a menu that a click dismisses still has a row to read.
-      await this.openAllFiltersMenu();
       await this.verifyFilterOptionNotChecked(label, checkbox);
       await this.verifyFilterButtonHidden(label);
       await this.clickMenuOption(checkbox);
-      await this.openAllFiltersMenu();
       await this.verifyFilterOptionChecked(label, checkbox);
       await this.verifyFilterButtonDisplayed(label);
     }
+    await this.closeAllFiltersMenu();
   }
 
   private async verifyFilterOptionChecked(label: string, checkbox: string): Promise<void> {
@@ -232,7 +238,7 @@ export class ModelPage {
     });
   }
 
-  // Open the selector if it is currently closed.
+  // Open the selector if it is currently closed; its own button is the only thing that closes it again.
   public async openColumnSelector(): Promise<void> {
     if ((await ElementUtils.getAttribute(this.chooseColumnsButton(), 'aria-expanded')) !== 'true') {
       await ActionUtils.click(this.chooseColumnsButton());
@@ -251,46 +257,69 @@ export class ModelPage {
    * column back. Every option is left as it was found, so the options stay independent of one another.
    */
   public async verifyEveryColumnOptionTogglesItsColumn(): Promise<void> {
+    // The selector stays up through every checkbox click, so it is opened once and closed at the end.
+    await this.openColumnSelector();
     for (const label of catalogColumnOptions) {
-      await this.openColumnSelector();
       const wasSelected = await this.isColumnOptionSelected(label);
       if (wasSelected) {
         await this.clickMenuOption(label);
-        // Reopened before every checkbox assertion, so a menu that a click dismisses still has a row to read.
-        await this.openColumnSelector();
         await this.verifyColumnRemoved(label);
       }
       await this.clickMenuOption(label);
-      await this.openColumnSelector();
       await this.verifyColumnAdded(label);
       if (!wasSelected) {
         await this.clickMenuOption(label);
-        await this.openColumnSelector();
         await this.verifyColumnRemoved(label);
       }
     }
+    await this.closeColumnSelector();
   }
 
-  /** Toggling an option can dismiss the menu, so it is reopened per option rather than assumed to be up. */
-  public async selectAllColumnOptions(): Promise<void> {
+  /**
+   * Every column switched on is the widest the table gets, so it is checked there and then put back: the
+   * column selection belongs to the signed-in user, who is shared with every other test on the account.
+   */
+  public async verifyEveryColumnSelectedKeepsRowsPopulated(): Promise<void> {
+    const switchedOnOptions = await this.selectAllColumnOptions();
+    await this.verifyAllColumnOptionsChecked();
+    await this.closeColumnSelector();
+    await this.verifyAllColumnsDisplayed();
+    await this.verifyEveryModelRowIsPopulated();
+    await this.clearColumnOptions(switchedOnOptions);
+  }
+
+  /** Returns the options it switched on, which are the only ones that have to be put back. */
+  private async selectAllColumnOptions(): Promise<string[]> {
+    const switchedOnOptions: string[] = [];
+    await this.openColumnSelector();
     for (const label of catalogColumnOptions) {
-      await this.openColumnSelector();
       // Clicking an already-selected option would clear it, so only the unselected ones are clicked.
       if (!(await this.isColumnOptionSelected(label))) {
+        switchedOnOptions.push(label);
         await this.clickMenuOption(label);
       }
     }
+    return switchedOnOptions;
+  }
+
+  /** Leaves the selector as the test found it, by clearing only what the test switched on. */
+  private async clearColumnOptions(labels: string[]): Promise<void> {
+    await this.openColumnSelector();
+    for (const label of labels) {
+      await this.clickMenuOption(label);
+    }
+    await this.closeColumnSelector();
   }
 
   // Close the selector if it is currently open, so its menu stops overlaying the table.
-  public async closeColumnSelector(): Promise<void> {
+  private async closeColumnSelector(): Promise<void> {
     if ((await ElementUtils.getAttribute(this.chooseColumnsButton(), 'aria-expanded')) === 'true') {
       await ActionUtils.click(this.chooseColumnsButton());
     }
   }
 
-  /** The caller reopens the menu first, since a click on the last option may have dismissed it. */
-  public async verifyAllColumnOptionsChecked(): Promise<void> {
+  /** Read with the selector still open, which is where a run of checkbox clicks leaves it. */
+  private async verifyAllColumnOptionsChecked(): Promise<void> {
     for (const label of catalogColumnOptions) {
       await AssertUtils.expectElementToBeChecked(this.menuCheckboxInput(label), {
         message: `${label} option should be checked`,
@@ -299,7 +328,7 @@ export class ModelPage {
   }
 
   /** With every option selected, the table shows the fixed column plus one column per option. */
-  public async verifyAllColumnsDisplayed(): Promise<void> {
+  private async verifyAllColumnsDisplayed(): Promise<void> {
     await this.verifyFixedColumnDisplayed();
     for (const label of catalogColumnOptions) {
       await AssertUtils.expectElementToBeVisible(this.columnHeader(label), {

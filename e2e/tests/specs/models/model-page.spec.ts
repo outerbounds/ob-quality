@@ -53,14 +53,8 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyChooseColumnsButton();
     await modelPage.openColumnSelector();
     await modelPage.verifyColumnSelectorExpanded();
-    await modelPage.selectAllColumnOptions();
-    // Selecting the last option can dismiss the menu, so reopen it before reading the option states.
-    await modelPage.openColumnSelector();
-    await modelPage.verifyAllColumnOptionsChecked();
-    await modelPage.closeColumnSelector();
-    await modelPage.verifyAllColumnsDisplayed();
-    // The widest version of the table still has a value in every cell of every model this user can see.
-    await modelPage.verifyEveryModelRowIsPopulated();
+    // With every column on, each model this user can see still fills every cell; the selection is restored after.
+    await modelPage.verifyEveryColumnSelectedKeepsRowsPopulated();
   });
 
   test('Column selector options show and hide their corresponding table columns', async ({ modelPage }) => {
