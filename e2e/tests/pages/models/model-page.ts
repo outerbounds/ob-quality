@@ -257,22 +257,28 @@ export class ModelPage {
    * column back. Every option is left as it was found, so the options stay independent of one another.
    */
   public async verifyEveryColumnOptionTogglesItsColumn(): Promise<void> {
-    // The selector stays up through every checkbox click, so it is opened once and closed at the end.
+    // The selector stays up through every checkbox click, so it is opened once and closed by the restore.
     await this.openColumnSelector();
-    for (const label of catalogColumnOptions) {
-      const wasSelected = await this.isColumnOptionSelected(label);
-      if (wasSelected) {
+    // Recorded as each option is reached, so a failure mid-toggle still leaves the states to put back.
+    const optionsAsFound = new Map<string, boolean>();
+    try {
+      for (const label of catalogColumnOptions) {
+        const wasSelected = await this.isColumnOptionSelected(label);
+        optionsAsFound.set(label, wasSelected);
+        if (wasSelected) {
+          await this.clickMenuOption(label);
+          await this.verifyColumnRemoved(label);
+        }
         await this.clickMenuOption(label);
-        await this.verifyColumnRemoved(label);
+        await this.verifyColumnAdded(label);
+        if (!wasSelected) {
+          await this.clickMenuOption(label);
+          await this.verifyColumnRemoved(label);
+        }
       }
-      await this.clickMenuOption(label);
-      await this.verifyColumnAdded(label);
-      if (!wasSelected) {
-        await this.clickMenuOption(label);
-        await this.verifyColumnRemoved(label);
-      }
+    } finally {
+      await this.restoreColumnOptions(optionsAsFound);
     }
-    await this.closeColumnSelector();
   }
 
   /**
@@ -280,17 +286,21 @@ export class ModelPage {
    * column selection belongs to the signed-in user, who is shared with every other test on the account.
    */
   public async verifyEveryColumnSelectedKeepsRowsPopulated(): Promise<void> {
-    const switchedOnOptions = await this.selectAllColumnOptions();
-    await this.verifyAllColumnOptionsChecked();
-    await this.closeColumnSelector();
-    await this.verifyAllColumnsDisplayed();
-    await this.verifyEveryModelRowIsPopulated();
-    await this.clearColumnOptions(switchedOnOptions);
+    // Held by the caller, so the selection is handed back even if switching the options on fails part way.
+    const switchedOnOptions: string[] = [];
+    try {
+      await this.selectAllColumnOptions(switchedOnOptions);
+      await this.verifyAllColumnOptionsChecked();
+      await this.closeColumnSelector();
+      await this.verifyAllColumnsDisplayed();
+      await this.verifyEveryModelRowIsPopulated();
+    } finally {
+      await this.restoreColumnOptions(new Map(switchedOnOptions.map(label => [label, false])));
+    }
   }
 
-  /** Returns the options it switched on, which are the only ones that have to be put back. */
-  private async selectAllColumnOptions(): Promise<string[]> {
-    const switchedOnOptions: string[] = [];
+  /** Records each option as it is switched on, so a failure mid-run still leaves the list to put back. */
+  private async selectAllColumnOptions(switchedOnOptions: string[]): Promise<void> {
     await this.openColumnSelector();
     for (const label of catalogColumnOptions) {
       // Clicking an already-selected option would clear it, so only the unselected ones are clicked.
@@ -299,14 +309,18 @@ export class ModelPage {
         await this.clickMenuOption(label);
       }
     }
-    return switchedOnOptions;
   }
 
-  /** Leaves the selector as the test found it, by clearing only what the test switched on. */
-  private async clearColumnOptions(labels: string[]): Promise<void> {
+  /**
+   * Puts every recorded option back to the state it was found in, and only where it differs, so a click that
+   * never landed is not turned into one here. The selector is always left closed.
+   */
+  private async restoreColumnOptions(optionsAsFound: Map<string, boolean>): Promise<void> {
     await this.openColumnSelector();
-    for (const label of labels) {
-      await this.clickMenuOption(label);
+    for (const [label, wasSelected] of optionsAsFound) {
+      if ((await this.isColumnOptionSelected(label)) !== wasSelected) {
+        await this.clickMenuOption(label);
+      }
     }
     await this.closeColumnSelector();
   }
