@@ -41,6 +41,28 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyEveryFilterOptionTogglesItsFilter();
   });
 
+  test('Model table renders every model row with data in each column', async ({ modelPage }) => {
+    // The table and its fixed Name column come up with the Models tab.
+    await modelPage.verifyModelTableDisplayed();
+    await modelPage.verifyModelTableColumnHeadersLabelled();
+    // Scrolls the catalog: rows must be present, every row fills one cell per column, and the badge agrees.
+    await modelPage.verifyEveryModelRowIsPopulated();
+  });
+
+  test('Table is fully populated with every column selected', async ({ modelPage }) => {
+    await modelPage.verifyChooseColumnsButton();
+    await modelPage.openColumnSelector();
+    await modelPage.verifyColumnSelectorExpanded();
+    await modelPage.selectAllColumnOptions();
+    // Selecting the last option can dismiss the menu, so reopen it before reading the option states.
+    await modelPage.openColumnSelector();
+    await modelPage.verifyAllColumnOptionsChecked();
+    await modelPage.closeColumnSelector();
+    await modelPage.verifyAllColumnsDisplayed();
+    // The widest version of the table still has a value in every cell of every model this user can see.
+    await modelPage.verifyEveryModelRowIsPopulated();
+  });
+
   test('Column selector options show and hide their corresponding table columns', async ({ modelPage }) => {
     await modelPage.verifyChooseColumnsButton();
     await modelPage.openColumnSelector();
