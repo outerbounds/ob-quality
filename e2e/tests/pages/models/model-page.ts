@@ -281,10 +281,7 @@ export class ModelPage {
     }
   }
 
-  /**
-   * Every column switched on is the widest the table gets, so it is checked there and then put back: the
-   * column selection belongs to the signed-in user, who is shared with every other test on the account.
-   */
+  /** Validate all columns, then restore the original selection. */
   public async verifyEveryColumnSelectedKeepsRowsPopulated(): Promise<void> {
     // Held by the caller, so the selection is handed back even if switching the options on fails part way.
     const switchedOnOptions: string[] = [];
@@ -445,13 +442,11 @@ export class ModelPage {
       }
       const previousTop = await this.readModelTableScrollTop();
       await this.scrollModelTableForward();
-      // Short of the bottom, every pass has to advance: a stalled scroll fails here instead of spinning.
-      await expect
-        .poll(() => this.readModelTableScrollTop(), {
-          message: 'Model table should scroll forward',
-          timeout: STANDARD_TIMEOUT,
-        })
-        .toBeGreaterThan(previousTop);
+      // Short of the bottom every page has to advance, so a stalled scroll says so instead of looping away.
+      expect(
+        await this.readModelTableScrollTop(),
+        `Model table should scroll forward from ${previousTop}px, with ${checkedModelIds.size} models checked`,
+      ).toBeGreaterThan(previousTop);
     }
   }
 
@@ -492,19 +487,14 @@ export class ModelPage {
     await this.waitForRenderedModelRows();
   }
 
-  /** Wait for the scroll offset to remain unchanged across two frames, then check the last row's stability. */
+  /** Wait for the last rendered model row to become stable. */
   private async waitForRenderedModelRows(): Promise<void> {
-    await PageUtils.waitForFunction(async () => {
-      // Inlined because the function body runs in the page, where this file's locators do not exist.
-      const container = document.querySelector('[data-qa-id="model-catalog-browse"] div.tableWrapper');
-      if (container === null) {
-        return false;
-      }
-      const offsetBeforeFrames = container.scrollTop;
-      await new Promise(settled => requestAnimationFrame(() => requestAnimationFrame(settled)));
-      return container.scrollTop === offsetBeforeFrames;
-    });
     await ElementUtils.waitForElementToBeStable(this.modelRows().last());
+  }
+
+  /** Read the row container's current vertical scroll offset. */
+  private async readModelTableScrollTop(): Promise<number> {
+    return await this.modelTableScroller().evaluate(container => container.scrollTop);
   }
 
   /**
@@ -515,11 +505,6 @@ export class ModelPage {
     return await this.modelTableScroller().evaluate(
       container => container.scrollTop + container.clientHeight >= container.scrollHeight - 2,
     );
-  }
-
-  /** Read the row container's current vertical scroll offset. */
-  private async readModelTableScrollTop(): Promise<number> {
-    return await this.modelTableScroller().evaluate(container => container.scrollTop);
   }
 
   /** Verify the badge matches the number of unique model rows checked. */
