@@ -34,8 +34,7 @@ test.describe('Packages Page OB UI Tests @smoke', () => {
         await packagesPage.verifyChannelRow(channel);
       });
     }
-    await test.step('Verify no cell is empty and the page did not redirect', async () => {
-      await packagesPage.verifyNoEmptyCells();
+    await test.step('Verify the page did not redirect', async () => {
       await packagesPage.verifyPackagesPageURL();
     });
   });

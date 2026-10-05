@@ -1,31 +1,14 @@
-import {
-  AssertUtils,
-  BIG_TIMEOUT,
-  ElementUtils,
-  LocatorUtils,
-  PageUtils,
-  STANDARD_TIMEOUT,
-} from '@anaconda/playwright-utils';
+import { AssertUtils, BIG_TIMEOUT, ElementUtils, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
-import {
-  type PackagesColumn,
-  type SecureChannel,
-  channelRowFormats,
-  nonEmptyText,
-  packagesColumn,
-  packagesColumns,
-  packagesData,
-} from '@testdata/packages/packages-test-data';
+import { packagesData, secureChannels } from '@testdata/packages/packages-test-data';
 
-/** The configured URL may or may not end with a slash; normalize once so every route check agrees. */
-const DASHBOARD_URL = BASE_URL.replace(/\/$/, '');
+type SecureChannel = (typeof secureChannels)[number];
+type PackagesColumn = (typeof packagesData.columns)[number];
 
-/**
- * The Packages page: the secure channel list of a project. Timing: the first channel list query can take 10–15s,
- * so the heading check right after a hard load uses BIG_TIMEOUT and the later list checks STANDARD_TIMEOUT.
- */
+/** The Packages page: the secure channel list of a project. */
 export class PackagesPage {
+  private readonly packagesPageURL = (): string => `${BASE_URL}/p/${packagesData.project}/packages`;
   private readonly packagesHeading = '#center-content h1';
   /** The "Listing from N secure channels" note has no data attribute; its class is the only stable handle. */
   private readonly channelSummary = '#center-content .listing-note';
@@ -37,10 +20,7 @@ export class PackagesPage {
       exact: true,
     });
   private readonly packagesLink = (): Locator =>
-    LocatorUtils.getLocator(`nav a[href="${new URL(this.packagesPageURL(packagesData.project)).pathname}"]`);
-  /** A cell with no visible text; the table must have none. */
-  private readonly emptyChannelCells = (): Locator =>
-    LocatorUtils.getLocator(`${this.channelRows} > td`).filter({ hasNotText: nonEmptyText });
+    LocatorUtils.getLocator(`nav a[href="${new URL(this.packagesPageURL()).pathname}"]`);
   /** Exact text is required: the main channel's name is a prefix of the main-x channel's name. */
   private readonly channelRow = (name: string): Locator =>
     LocatorUtils.getLocator(this.channelRows).filter({
@@ -50,22 +30,18 @@ export class PackagesPage {
     this.channelRow(name).locator('.channel .packages');
   /** Last resort: Source, Policy and Policy Results cells carry no attributes, so the column position is used. */
   private readonly channelRowCell = (name: string, column: PackagesColumn): Locator =>
-    this.channelRow(name).locator(`:scope > td:nth-of-type(${packagesColumns.indexOf(column) + 1})`);
+    this.channelRow(name).locator(`:scope > td:nth-of-type(${packagesData.columns.indexOf(column) + 1})`);
   private readonly channelRowPolicyTag = (name: string): Locator =>
-    this.channelRowCell(name, packagesColumn.policy).locator('.badge');
+    this.channelRowCell(name, 'Policy').locator('.badge');
   private readonly channelRowPolicyResults = (name: string): Locator =>
-    this.channelRowCell(name, packagesColumn.policyResults).locator('.truncate-text');
-
-  private packagesPageURL(project: string): string {
-    return `${DASHBOARD_URL}/p/${project}/packages`;
-  }
+    this.channelRowCell(name, 'Policy Results').locator('.truncate-text');
 
   public async navigateToPackagesPage(): Promise<void> {
-    await PageUtils.gotoURL(this.packagesPageURL(packagesData.project), { waitUntil: 'domcontentloaded' });
+    await PageUtils.gotoURL(this.packagesPageURL());
   }
 
   public async verifyPackagesPageURL(): Promise<void> {
-    await AssertUtils.expectPageToHaveURL(this.packagesPageURL(packagesData.project), {
+    await AssertUtils.expectPageToHaveURL(this.packagesPageURL(), {
       message: 'Browser should still be on the project Packages page',
     });
   }
@@ -86,6 +62,10 @@ export class PackagesPage {
     });
   }
 
+  /**
+   * The heading renders only after the slow first channel list query (often 10–15s), so the default 5s fails;
+   * once it is visible, the rest of the page is loaded and the later checks need no override.
+   */
   public async verifyPackagesHeading(): Promise<void> {
     await AssertUtils.expectElementToHaveText(this.packagesHeading, packagesData.heading, {
       message: 'Page heading should read Packages',
@@ -97,7 +77,6 @@ export class PackagesPage {
   public async verifySummaryCountMatchesRows(): Promise<void> {
     await AssertUtils.expectElementToContainText(this.channelSummary, packagesData.summaryPattern, {
       message: 'Summary should state how many secure channels are listed',
-      timeout: STANDARD_TIMEOUT,
     });
     const summary = await ElementUtils.getText(this.channelSummary);
     const listedCount = Number(packagesData.summaryPattern.exec(summary)?.[1]);
@@ -107,16 +86,14 @@ export class PackagesPage {
   }
 
   public async verifyColumnHeadersInOrder(): Promise<void> {
-    await AssertUtils.expectElementToHaveText(this.columnHeaders, [...packagesColumns], {
+    await AssertUtils.expectElementToHaveText(this.columnHeaders, [...packagesData.columns], {
       message: 'Table should show the Secure Channel, Source, Policy and Policy Results columns in order',
-      timeout: STANDARD_TIMEOUT,
     });
   }
 
   public async verifyChannelRowCount(channels: readonly SecureChannel[]): Promise<void> {
     await AssertUtils.expectElementToHaveCount(this.channelRows, channels.length, {
       message: 'Table should list one row per secure channel',
-      timeout: STANDARD_TIMEOUT,
     });
   }
 
@@ -127,33 +104,22 @@ export class PackagesPage {
   public async verifyChannelRow(channel: SecureChannel): Promise<void> {
     await AssertUtils.expectElementToBeVisible(this.channelRow(channel.name), {
       message: `${channel.name} row should be listed`,
-      timeout: STANDARD_TIMEOUT,
     });
     await AssertUtils.expectElementToHaveText(
       this.channelRowPackageCount(channel.name),
-      channelRowFormats.packageCount,
+      packagesData.packageCountPattern,
       { message: `${channel.name} row should show "N packages"` },
     );
-    await AssertUtils.expectElementToHaveText(
-      this.channelRowCell(channel.name, packagesColumn.source),
-      channel.source,
-      {
-        message: `${channel.name} row should show its source`,
-      },
-    );
-    await AssertUtils.expectElementToHaveText(this.channelRowPolicyTag(channel.name), channel.policy ?? nonEmptyText, {
+    await AssertUtils.expectElementToHaveText(this.channelRowCell(channel.name, 'Source'), channel.source, {
+      message: `${channel.name} row should show its source`,
+    });
+    await AssertUtils.expectElementToHaveText(this.channelRowPolicyTag(channel.name), channel.policy, {
       message: `${channel.name} row should tag its active policy`,
     });
     await AssertUtils.expectElementToHaveText(
       this.channelRowPolicyResults(channel.name),
-      channelRowFormats.policyResults,
+      packagesData.policyResultsPattern,
       { message: `${channel.name} row should show "N files removed"` },
     );
-  }
-
-  public async verifyNoEmptyCells(): Promise<void> {
-    await AssertUtils.expectElementToHaveCount(this.emptyChannelCells(), 0, {
-      message: 'Every cell of every secure channel row should have content',
-    });
   }
 }

@@ -16,9 +16,6 @@ import {
   catalogFixedColumn,
 } from '@testdata/models/catalog-test-data';
 
-/** The configured URL may or may not end with a slash; normalize once so every route check agrees. */
-const DASHBOARD_URL = BASE_URL.replace(/\/$/, '');
-
 export class ModelPage {
   private readonly resourcesButton = (): Locator =>
     LocatorUtils.getLocatorByRole('navigation').getByRole('button', { name: 'Resources', exact: true });
@@ -53,16 +50,16 @@ export class ModelPage {
     this.catalog().getByRole('columnheader', { name: label, exact: true });
 
   private modelPageURL(project: string): string {
-    return `${DASHBOARD_URL}/catalog/p/${project}`;
+    return `${BASE_URL}/catalog/p/${project}`;
   }
 
   public async navigateToDashboard(): Promise<void> {
-    await PageUtils.gotoURL(DASHBOARD_URL, { waitUntil: 'domcontentloaded' });
+    await PageUtils.gotoURL(BASE_URL, { waitUntil: 'domcontentloaded' });
   }
 
   /** Accepts dashboard subroutes and query strings while keeping the configured route boundary. */
   public async verifyDashboardURL(): Promise<void> {
-    await AssertUtils.expectPageToHaveURL(new RegExp(`^${escapeRegExp(DASHBOARD_URL)}(?:/|$|\\?)`), {
+    await AssertUtils.expectPageToHaveURL(new RegExp(`^${escapeRegExp(BASE_URL)}(?:/|$|\\?)`), {
       message: 'Authenticated user should remain on the configured dashboard route',
     });
   }
