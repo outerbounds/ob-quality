@@ -121,6 +121,10 @@ export class ModelPage {
     });
   }
 
+  public async clickChartTab(): Promise<void> {
+    await ActionUtils.click(this.chartTab());
+  }
+
   public async verifyLicensesTab(): Promise<void> {
     await AssertUtils.expectElementToBeVisible(this.licensesTab(), {
       message: 'Licenses tab should be visible',
