@@ -45,16 +45,28 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     // The table and its fixed Name column come up with the Models tab.
     await modelPage.verifyModelTableDisplayed();
     await modelPage.verifyModelTableColumnHeadersLabelled();
-    // Scrolls the catalog: rows must be present, every row fills one cell per column, and the badge agrees.
-    await modelPage.verifyEveryModelRowIsPopulated();
+    await modelPage.verifyModelRowsDisplayed();
+    // Scrolls the catalog end to end, collecting every row; the two checks below read what it collected.
+    await modelPage.scrollThroughEveryModelRow();
+    modelPage.verifyEveryModelRowIsPopulated();
+    await modelPage.verifyModelCountBadgeMatchesScannedRows();
   });
 
   test('Table is fully populated with every column selected', async ({ modelPage }) => {
     await modelPage.verifyChooseColumnsButton();
     await modelPage.openColumnSelector();
     await modelPage.verifyColumnSelectorExpanded();
-    // With every column on, each model this user can see still fills every cell; the selection is restored after.
-    await modelPage.verifyEveryColumnSelectedKeepsRowsPopulated();
+    await modelPage.selectAllColumnOptions();
+    await modelPage.verifyAllColumnOptionsChecked();
+    // The selector overlays the table, so it is closed before the columns behind it are checked.
+    await modelPage.closeColumnSelector();
+    await modelPage.verifyAllColumnsDisplayed();
+    await modelPage.verifyModelRowsDisplayed();
+    // With every column on, each model this user can see still fills every cell.
+    await modelPage.scrollThroughEveryModelRow();
+    modelPage.verifyEveryModelRowIsPopulated();
+    // The badge is what proves the sweep reached every model, not just the rows it happened to collect.
+    await modelPage.verifyModelCountBadgeMatchesScannedRows();
   });
 
   test('Column selector options show and hide their corresponding table columns', async ({ modelPage }) => {
