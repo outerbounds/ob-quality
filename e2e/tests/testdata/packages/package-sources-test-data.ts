@@ -3,31 +3,23 @@ import { BASE_URL } from '@playwright-config';
 
 export const packageSourcesData = {
   perimeter: 'default',
-  /** The page heading above the perimeter tabs. */
-  heading: 'Perimeters',
-  /** Tabs are marked active only by this class; there is no aria-selected attribute. */
-  selectedClass: 'selected',
-  /** Secure channels heading, e.g. "3 secure channels" or "1 secure channel". */
-  secureChannelsHeading: (count: number): RegExp => new RegExp(`^${count} secure channels?$`),
-  /** Secure channel subtitle `<source> · <count> packages`, e.g. "main · 5,530 packages"; the count is volatile. */
-  secureChannelSubtitle: (source: string): RegExp =>
-    new RegExp(String.raw`^${escapeRegExp(source)} · \d[\d,]* packages?$`),
-} as const;
-
-/** Dashboard route of Perimeters (relative to the dashboard URL) and the Package Sources route of a perimeter. */
-export const codeRoutesData = {
+  /** Dashboard route of Perimeters and the Package Sources sub-route of a perimeter (the Code tab's default). */
   perimetersPath: 'perimetersphase0',
   sourcesPath: 'code/sources',
-} as const;
-
-/** The GraphQL operation Package Sources loads its channels and their policies with. */
-export const policyApiData = {
+  /** The page heading above the perimeter tabs. */
+  heading: 'Perimeters',
+  /** Tabs are marked active only by the whole "selected" class; there is no aria-selected attribute. */
+  selectedClass: /(^|\s)selected(\s|$)/,
+  /** Secure channels heading, e.g. "3 secure channels" or "1 secure channel". */
+  secureChannelsHeading: (count: number): RegExp => new RegExp(`^${count} secure channels?$`),
+  /** Secure channel subtitle, e.g. "main · 5530 packages" or "main · 5,530 packages"; the count is volatile. */
+  secureChannelSubtitle: (source: string): RegExp =>
+    new RegExp(String.raw`^${escapeRegExp(source)} · (\d{1,3}(,\d{3})+|\d+) packages?$`),
+  /** GraphQL calls go to POST <graphqlPath>?op=<operation>; Package Sources loads its channels with this operation. */
+  graphqlPath: '/edge/graphql',
   channelsOperation: 'ChannelsWithArtifacts',
-} as const;
-
-/** The shared default policy: a channel on it is tagged with this tag before the policy name. */
-export const baselinePolicy = {
-  tag: 'Default',
+  /** A channel on the shared default policy is tagged with this tag before the policy name. */
+  defaultPolicyTag: 'Default',
 } as const;
 
 /** The environment name from the dashboard host, e.g. "dev-coldbrewcrew" from ui.dev-coldbrewcrew.outerbounds.xyz. */

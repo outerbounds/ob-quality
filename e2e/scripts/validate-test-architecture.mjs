@@ -5,7 +5,7 @@ import process from 'node:process';
 
 const root = process.cwd();
 const testsRoot = path.join(root, 'tests');
-const domains = ['models', 'packages', 'perimeters'];
+const domains = ['models', 'packages'];
 const artifactDirectories = ['fixtures', 'pages', 'specs', 'testdata'];
 const errors = [];
 

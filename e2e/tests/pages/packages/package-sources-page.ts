@@ -1,25 +1,31 @@
-import { AssertUtils, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
-import { assignedPolicyName, findChannel, loadChannelsPayload } from '@pages/perimeters/channel-policy-api';
-import { type ChannelsWithArtifactsPayload } from '@pages/perimeters/channel-policy-types';
-import { packageSourcesURL } from '@pages/perimeters/perimeters-routes';
-import { SELECTED_CLASS, requireValue } from '@pages/perimeters/perimeters-utils';
+import { AssertUtils, BIG_TIMEOUT, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
+import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
-import {
-  baselinePolicy,
-  codeRoutesData,
-  packageSourcesData,
-  type secureChannels,
-} from '@testdata/perimeters/package-sources-test-data';
+import { packageSourcesData, type secureChannels } from '@testdata/packages/package-sources-test-data';
 
 type SecureChannel = (typeof secureChannels)[number];
 
+/** The ChannelsWithArtifacts fields the tests read. A channel without a policy reports null or an empty name. */
+type ChannelPayload = {
+  name: string;
+  isDefaultPolicy: boolean | null;
+  assignedPolicy: { name: string } | null;
+};
+
+type ChannelsResponseBody = {
+  data?: { channels?: { channels?: ChannelPayload[] } };
+  errors?: unknown[];
+};
+
 /** Perimeters > Code > Package Sources: the secure channel list and the policy tags of each channel. */
 export class PackageSourcesPage {
+  private readonly packageSourcesURL = (): string =>
+    `${BASE_URL}/${packageSourcesData.perimetersPath}/${packageSourcesData.perimeter}/${packageSourcesData.sourcesPath}`;
   private readonly perimetersHeading = '#center-content h1';
   /** Code and Package Sources link to the same route; the sub-tab strip is the "flat" one. */
-  private readonly codeTab = `.tab-list:not(.flat) a[role="tab"][href$="/${codeRoutesData.sourcesPath}"]`;
-  private readonly packageSourcesTab = `.tab-list.flat a[role="tab"][href$="/${codeRoutesData.sourcesPath}"]`;
-  /** Last resort: the tab body is heading, table (secure channels first) with no other handle. */
+  private readonly codeTab = `.tab-list:not(.flat) a[role="tab"][href$="/${packageSourcesData.sourcesPath}"]`;
+  private readonly packageSourcesTab = `.tab-list.flat a[role="tab"][href$="/${packageSourcesData.sourcesPath}"]`;
+  /** Last resort: the tab body is a heading and a table per channel group (secure first) with no other handle. */
   private readonly secureChannelsHeading = '.sourcesTab > p:nth-of-type(1)';
   private readonly secureChannelRows = '.sourcesTab > table:nth-of-type(1) tr';
   /** Exact text is required: the main channel's name is a prefix of the main-x channel's name. */
@@ -31,18 +37,39 @@ export class PackageSourcesPage {
     this.secureChannelRow(name).locator('.left .bottom.label');
   private readonly secureChannelTags = (name: string): Locator => this.secureChannelRow(name).locator('.badges .badge');
 
-  /** The ChannelsWithArtifacts response the page loaded with; the policy tag checks compare the UI with it. */
-  private loadedChannels: ChannelsWithArtifactsPayload | null = null;
+  /** The channels of the ChannelsWithArtifacts response the page loaded with; the tag checks compare the UI with it. */
+  private loadedChannels: ChannelPayload[] = [];
 
-  /** Opens Package Sources of the test perimeter and keeps the page's own ChannelsWithArtifacts response. */
+  /**
+   * Opens Package Sources of the test perimeter and keeps the page's own ChannelsWithArtifacts response. The query
+   * often takes 10–15s, so the default 5s fails; once it has arrived, the later checks need no override.
+   */
   public async loadPackageSources(): Promise<void> {
-    this.loadedChannels = await loadChannelsPayload(() =>
-      PageUtils.gotoURL(packageSourcesURL(packageSourcesData.perimeter)),
-    );
+    const [response] = await Promise.all([
+      PageUtils.waitForResponse(
+        candidate => {
+          const url = new URL(candidate.url());
+          return (
+            url.pathname.endsWith(packageSourcesData.graphqlPath) &&
+            url.searchParams.get('op') === packageSourcesData.channelsOperation
+          );
+        },
+        { timeout: BIG_TIMEOUT },
+      ),
+      PageUtils.gotoURL(this.packageSourcesURL()),
+    ]);
+    const body = (await response.json()) as ChannelsResponseBody;
+    const channels = body.data?.channels?.channels;
+    if (!channels) {
+      throw new Error(
+        `${packageSourcesData.channelsOperation} should return a channel list; errors: ${JSON.stringify(body.errors ?? [])}`,
+      );
+    }
+    this.loadedChannels = channels;
   }
 
   public async verifyPackageSourcesURL(): Promise<void> {
-    await AssertUtils.expectPageToHaveURL(packageSourcesURL(packageSourcesData.perimeter), {
+    await AssertUtils.expectPageToHaveURL(this.packageSourcesURL(), {
       message: 'Browser should stay on the Package Sources route',
     });
   }
@@ -54,13 +81,13 @@ export class PackageSourcesPage {
   }
 
   public async verifyCodeTabSelected(): Promise<void> {
-    await AssertUtils.expectElementToHaveClass(this.codeTab, SELECTED_CLASS, {
+    await AssertUtils.expectElementToHaveClass(this.codeTab, packageSourcesData.selectedClass, {
       message: 'Code tab should be selected',
     });
   }
 
   public async verifyPackageSourcesTabSelected(): Promise<void> {
-    await AssertUtils.expectElementToHaveClass(this.packageSourcesTab, SELECTED_CLASS, {
+    await AssertUtils.expectElementToHaveClass(this.packageSourcesTab, packageSourcesData.selectedClass, {
       message: 'Package Sources sub-tab should be selected',
     });
   }
@@ -78,11 +105,8 @@ export class PackageSourcesPage {
     });
   }
 
-  /** Verifies a secure channel row shows its name and its "<source> · N packages" subtitle. */
+  /** Verifies the row of a secure channel (found by its exact name) shows its "<source> · N packages" subtitle. */
   public async verifySecureChannel(channel: SecureChannel): Promise<void> {
-    await AssertUtils.expectElementToBeVisible(this.secureChannelRow(channel.name), {
-      message: `${channel.name} should be listed as a secure channel`,
-    });
     await AssertUtils.expectElementToHaveText(
       this.secureChannelSubtitle(channel.name),
       packageSourcesData.secureChannelSubtitle(channel.source),
@@ -95,10 +119,13 @@ export class PackageSourcesPage {
    * shared default policy, otherwise the policy name alone. So the check holds whichever policy a shared channel is on.
    */
   public async verifySecureChannelTagsMatchPolicy(channel: string): Promise<void> {
-    const payload = requireValue(this.loadedChannels, 'Package Sources must be loaded first');
-    const channelData = findChannel(payload, channel);
-    const policyName = requireValue(assignedPolicyName(channelData), `${channel} should have an assigned policy`);
-    const tags = channelData.isDefaultPolicy === true ? [baselinePolicy.tag, policyName] : [policyName];
+    const channelData = this.loadedChannels.find(candidate => candidate.name === channel);
+    const policyName = channelData?.assignedPolicy?.name;
+    if (!channelData || !policyName) {
+      throw new Error(`${packageSourcesData.channelsOperation} should report an assigned policy for ${channel}`);
+    }
+    const tags =
+      channelData.isDefaultPolicy === true ? [packageSourcesData.defaultPolicyTag, policyName] : [policyName];
     await AssertUtils.expectElementToHaveText(this.secureChannelTags(channel), tags, {
       message: `${channel} should be tagged ${tags.join(' + ')}`,
     });

@@ -1,11 +1,11 @@
 // seed: tests/storage-setup/login-storage-setup.ts
 
-import { test } from '@perimeters-fixture';
-import { secureChannels } from '@testdata/perimeters/package-sources-test-data';
+import { test } from '@packages-fixture';
+import { secureChannels } from '@testdata/packages/package-sources-test-data';
 import { getUserAuthPath } from 'tests/storage-setup/cookie-utils';
 import { adminAutomationUser } from 'tests/storage-setup/user-test-data';
 
-test.describe('Perimeters Package Sources OB UI Tests @smoke', () => {
+test.describe('Perimeters Package Sources OB UI Tests @smoke @perimeters', () => {
   // Use the storage state for the admin automation user to maintain authentication across tests.
   test.use({ storageState: getUserAuthPath(adminAutomationUser) });
 
@@ -13,13 +13,13 @@ test.describe('Perimeters Package Sources OB UI Tests @smoke', () => {
     // Keeps the page's own ChannelsWithArtifacts response, so the policy tag checks compare the UI with the API.
     await packageSourcesPage.loadPackageSources();
     await packageSourcesPage.verifyCodeTabSelected();
+    await packageSourcesPage.verifyPackageSourcesURL();
   });
 
   // P1 — Perimeters > Code > Package Sources > Verify page lists secure channels and their policy tags
   test('Package Sources lists the secure channels with their policy tags', async ({ packageSourcesPage }) => {
     await test.step('Verify the Perimeters heading and that the Code tab opens on Package Sources', async () => {
       await packageSourcesPage.verifyPerimetersHeading();
-      await packageSourcesPage.verifyPackageSourcesURL();
       await packageSourcesPage.verifyPackageSourcesTabSelected();
     });
     await test.step('Verify the secure channels heading', async () => {

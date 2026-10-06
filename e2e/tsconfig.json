@@ -13,7 +13,6 @@
       "@testdata/*": ["./tests/testdata/*"],
       "@models-fixture": ["./tests/fixtures/models/fixture"],
       "@packages-fixture": ["./tests/fixtures/packages/fixture"],
-      "@perimeters-fixture": ["./tests/fixtures/perimeters/fixture"],
       "@page-setup": ["./test-setup/page-setup"],
       "tests/*": ["./tests/*"],
       "@playwright-config": ["./playwright.config"]
