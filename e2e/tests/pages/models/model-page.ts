@@ -56,6 +56,11 @@ export class ModelPage {
   /** The rows' scroll container exposes no data attribute, so its class inside the catalog is the handle. */
   private readonly modelTableScroller = (): Locator => this.catalog().locator('div.tableWrapper');
 
+  /** The table's column headers as the scroll sweep found them, in the order the table renders them. */
+  private scannedColumns: string[] = [];
+  /** Every row the scroll sweep reached, keyed by its own model id and holding that row's cell texts. */
+  private readonly scannedRows = new Map<string, string[]>();
+
   private modelPageURL(project: string): string {
     return `${DASHBOARD_URL}/catalog/p/${project}`;
   }
@@ -257,86 +262,48 @@ export class ModelPage {
     });
   }
 
-  /**
-   * Which options are selected is persisted user state, so each option's state is read rather than assumed:
-   * an already-selected one is cleared first to prove its column goes away, then selecting it must bring the
-   * column back. Every option is left as it was found, so the options stay independent of one another.
-   */
+  /** Toggle each column twice and verify both states. */
   public async verifyEveryColumnOptionTogglesItsColumn(): Promise<void> {
-    // The selector stays up through every checkbox click, so it is opened once and closed by the restore.
-    await this.openColumnSelector();
-    // Recorded as each option is reached, so a failure mid-toggle still leaves the states to put back.
-    const optionsAsFound = new Map<string, boolean>();
-    try {
-      for (const label of catalogColumnOptions) {
-        const wasSelected = await this.isColumnOptionSelected(label);
-        optionsAsFound.set(label, wasSelected);
-        if (wasSelected) {
-          await this.clickMenuOption(label);
-          await this.verifyColumnRemoved(label);
-        }
-        await this.clickMenuOption(label);
-        await this.verifyColumnAdded(label);
-        if (!wasSelected) {
-          await this.clickMenuOption(label);
-          await this.verifyColumnRemoved(label);
-        }
-      }
-    } finally {
-      await this.restoreColumnOptions(optionsAsFound);
-    }
-  }
-
-  /** Validate all columns, then restore the original selection. */
-  public async verifyEveryColumnSelectedKeepsRowsPopulated(): Promise<void> {
-    // Held by the caller, so the selection is handed back even if switching the options on fails part way.
-    const switchedOnOptions: string[] = [];
-    try {
-      await this.selectAllColumnOptions(switchedOnOptions);
-      await this.verifyAllColumnOptionsChecked();
-      await this.closeColumnSelector();
-      await this.verifyAllColumnsDisplayed();
-      await this.verifyEveryModelRowIsPopulated();
-    } finally {
-      await this.restoreColumnOptions(new Map(switchedOnOptions.map(label => [label, false])));
-    }
-  }
-
-  /** Records each option as it is switched on, so a failure mid-run still leaves the list to put back. */
-  private async selectAllColumnOptions(switchedOnOptions: string[]): Promise<void> {
+    // The selector stays up through every checkbox click, so it is opened once and closed at the end.
     await this.openColumnSelector();
     for (const label of catalogColumnOptions) {
-      // Clicking an already-selected option would clear it, so only the unselected ones are clicked.
-      if (!(await this.isColumnOptionSelected(label))) {
-        switchedOnOptions.push(label);
-        await this.clickMenuOption(label);
-      }
-    }
-  }
-
-  /**
-   * Puts every recorded option back to the state it was found in, and only where it differs, so a click that
-   * never landed is not turned into one here. The selector is always left closed.
-   */
-  private async restoreColumnOptions(optionsAsFound: Map<string, boolean>): Promise<void> {
-    await this.openColumnSelector();
-    for (const [label, wasSelected] of optionsAsFound) {
-      if ((await this.isColumnOptionSelected(label)) !== wasSelected) {
-        await this.clickMenuOption(label);
-      }
+      const wasSelected = await this.isColumnOptionSelected(label);
+      await this.clickMenuOption(label);
+      await this.verifyColumnState(label, !wasSelected);
+      await this.clickMenuOption(label);
+      await this.verifyColumnState(label, wasSelected);
     }
     await this.closeColumnSelector();
   }
 
+  /** Verify the checkbox and column match the expected state. */
+  private async verifyColumnState(label: string, selected: boolean): Promise<void> {
+    if (selected) {
+      await this.verifyColumnAdded(label);
+    } else {
+      await this.verifyColumnRemoved(label);
+    }
+  }
+
+  public async selectAllColumnOptions(): Promise<void> {
+    await this.openColumnSelector();
+    for (const label of catalogColumnOptions) {
+      // Clicking an already-selected option would clear it, so only the unselected ones are clicked.
+      if (!(await this.isColumnOptionSelected(label))) {
+        await this.clickMenuOption(label);
+      }
+    }
+  }
+
   // Close the selector if it is currently open, so its menu stops overlaying the table.
-  private async closeColumnSelector(): Promise<void> {
+  public async closeColumnSelector(): Promise<void> {
     if ((await ElementUtils.getAttribute(this.chooseColumnsButton(), 'aria-expanded')) === 'true') {
       await ActionUtils.click(this.chooseColumnsButton());
     }
   }
 
   /** Read with the selector still open, which is where a run of checkbox clicks leaves it. */
-  private async verifyAllColumnOptionsChecked(): Promise<void> {
+  public async verifyAllColumnOptionsChecked(): Promise<void> {
     for (const label of catalogColumnOptions) {
       await AssertUtils.expectElementToBeChecked(this.menuCheckboxInput(label), {
         message: `${label} option should be checked`,
@@ -345,7 +312,7 @@ export class ModelPage {
   }
 
   /** With every option selected, the table shows the fixed column plus one column per option. */
-  private async verifyAllColumnsDisplayed(): Promise<void> {
+  public async verifyAllColumnsDisplayed(): Promise<void> {
     await this.verifyFixedColumnDisplayed();
     for (const label of catalogColumnOptions) {
       await AssertUtils.expectElementToBeVisible(this.columnHeader(label), {
@@ -409,8 +376,9 @@ export class ModelPage {
     // Headers are not windowed like the rows, so a locator per header is safe to hold while asserting.
     const headers = await LocatorUtils.getAllLocators(this.modelTableHeaders());
     for (const header of headers) {
-      await AssertUtils.expectElementValueNotToBeEmpty(header, {
-        message: 'Every model table column should be displayed with a header label',
+      // A header holds text, not an input value, and any non-whitespace character makes it a label.
+      await AssertUtils.expectElementToHaveText(header, /\S/, {
+        message: 'Every model table column should have a header label',
       });
     }
   }
@@ -422,28 +390,19 @@ export class ModelPage {
     });
   }
 
-  /**
-   * Validate each unique model row while scrolling, then compare
-   * the collected row count with the model count badge.
-   */
-  public async verifyEveryModelRowIsPopulated(): Promise<void> {
-    // An empty catalog is a failure here, not a pass over nothing.
-    await this.verifyModelRowsDisplayed();
-    const columns = await ElementUtils.getAllTexts(this.modelTableHeaders());
-    const nameColumn = columns.indexOf(catalogFixedColumn);
-    const checkedModelIds = new Set<string>();
+  /** Collect unique rows while scrolling and check scroll progress. */
+  public async scrollThroughEveryModelRow(): Promise<void> {
+    this.scannedColumns = await ElementUtils.getAllTexts(this.modelTableHeaders());
+    this.scannedRows.clear();
     await this.scrollModelTableToTop();
     while (true) {
-      const modelIds = await this.readRenderedModelRowIds();
-      for (const modelId of modelIds) {
-        if (!checkedModelIds.has(modelId)) {
-          await this.verifyModelRowIsPopulated(modelId, columns, nameColumn);
-          checkedModelIds.add(modelId);
+      for (const modelId of await this.readRenderedModelRowIds()) {
+        if (!this.scannedRows.has(modelId)) {
+          this.scannedRows.set(modelId, await this.readModelRowCells(modelId));
         }
       }
-      // Checked before the break, so the rows rendered at the bottom are covered like any other window.
+      // Read before the break, so the rows rendered at the bottom are collected like any other window.
       if (await this.isModelTableAtBottom()) {
-        await this.verifyModelCountBadgeMatches(checkedModelIds.size);
         return;
       }
       const previousTop = await this.readModelTableScrollTop();
@@ -451,31 +410,53 @@ export class ModelPage {
       // Short of the bottom every page has to advance, so a stalled scroll says so instead of looping away.
       expect(
         await this.readModelTableScrollTop(),
-        `Model table should scroll forward from ${previousTop}px, with ${checkedModelIds.size} models checked`,
+        `Model table should scroll forward from ${previousTop}px, with ${this.scannedRows.size} rows collected`,
       ).toBeGreaterThan(previousTop);
     }
   }
 
-  /** Scoping the cells to one row's own id keeps each assertion on the row whose name it reports. */
-  private async verifyModelRowIsPopulated(modelId: string, columns: string[], nameColumn: number): Promise<void> {
-    const cells = this.modelRowCells(this.modelRow(modelId));
-    // Checked per row, so a row short of a cell cannot be offset by another row carrying a spare one.
-    await AssertUtils.expectElementToHaveCount(cells, columns.length, {
-      message: `Row ${modelId} should have one cell for each of the ${columns.length} columns (${columns.join(', ')})`,
-    });
-    const cellTexts = await ElementUtils.getAllTexts(cells);
-    const rowName = cellTexts[nameColumn] ?? modelId;
-    for (const [column, columnName] of columns.entries()) {
-      // The row is pinned by its id and its cell count asserted above, so indexing its own cells is stable.
-      await AssertUtils.expectElementValueNotToBeEmpty(cells.nth(column), {
-        message: `The ${columnName} cell of row "${rowName}" should be populated`,
-      });
+  /** Verify each collected row has a populated cell per column. */
+  public verifyEveryModelRowIsPopulated(): void {
+    this.assertModelRowsWereScanned();
+    const nameColumn = this.scannedColumns.indexOf(catalogFixedColumn);
+    for (const [modelId, cells] of this.scannedRows) {
+      // Checked per row, so a row short of a cell cannot be offset by another row carrying a spare one.
+      expect(
+        cells,
+        `Row ${modelId} should have one cell for each of the ${this.scannedColumns.length} columns (${this.scannedColumns.join(', ')})`,
+      ).toHaveLength(this.scannedColumns.length);
+      const rowName = cells[nameColumn] ?? modelId;
+      for (const [column, columnName] of this.scannedColumns.entries()) {
+        // A cell of nothing but whitespace reaches the user as an empty one, so it has to fail here too.
+        expect(cells[column], `The ${columnName} cell of row "${rowName}" should be populated`).toMatch(/\S/);
+      }
     }
+  }
+
+  /** Verify the badge matches the number of unique model rows the sweep reached. */
+  public async verifyModelCountBadgeMatchesScannedRows(): Promise<void> {
+    this.assertModelRowsWereScanned();
+    await AssertUtils.expectElementToHaveText(this.modelCountBadge(), String(this.scannedRows.size), {
+      message: `Model count badge should report the ${this.scannedRows.size} models this user can access`,
+    });
+  }
+
+  /** Ensure rows were collected before assertions. */
+  private assertModelRowsWereScanned(): void {
+    expect(
+      this.scannedRows.size,
+      'Model rows should have been collected by scrollThroughEveryModelRow before being verified',
+    ).toBeGreaterThan(0);
   }
 
   /** Read all currently rendered model row IDs in one DOM snapshot. */
   private async readRenderedModelRowIds(): Promise<string[]> {
     return await this.modelRows().evaluateAll(rows => rows.map(row => row.getAttribute('data-qa-id') ?? ''));
+  }
+
+  /** Scoping the cells to one row's own id keeps each cell text on the row it is recorded against. */
+  private async readModelRowCells(modelId: string): Promise<string[]> {
+    return await ElementUtils.getAllTexts(this.modelRowCells(this.modelRow(modelId)));
   }
 
   /** Starts the sweep from the first row whatever the table had scrolled to beforehand. */
@@ -484,10 +465,7 @@ export class ModelPage {
     await this.waitForRenderedModelRows();
   }
 
-  /**
-   * Pages the scroll container itself, so the next window renders whether or not the last row happened to sit
-   * below the fold. The key goes to the container, which takes focus and scrolls like any scrollable box.
-   */
+  /** Scroll down one page and wait for rows to stabilize. */
   private async scrollModelTableForward(): Promise<void> {
     await ActionUtils.pressLocatorKeyboard(this.modelTableScroller(), 'PageDown');
     await this.waitForRenderedModelRows();
@@ -503,20 +481,10 @@ export class ModelPage {
     return await this.modelTableScroller().evaluate(container => container.scrollTop);
   }
 
-  /**
-   * A scroll offset is not locator state, so this is read in the page. The couple of pixels of tolerance keep
-   * fractional layout heights from reading as short of the bottom.
-   */
+  /** Check whether the table is at the bottom, allowing 2px tolerance. */
   private async isModelTableAtBottom(): Promise<boolean> {
     return await this.modelTableScroller().evaluate(
       container => container.scrollTop + container.clientHeight >= container.scrollHeight - 2,
     );
-  }
-
-  /** Verify the badge matches the number of unique model rows checked. */
-  private async verifyModelCountBadgeMatches(modelCount: number): Promise<void> {
-    await AssertUtils.expectElementToHaveText(this.modelCountBadge(), String(modelCount), {
-      message: `Model count badge should report the ${modelCount} models this user can access`,
-    });
   }
 }
