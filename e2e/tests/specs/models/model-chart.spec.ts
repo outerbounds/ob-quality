@@ -16,15 +16,15 @@ test.describe('Model Chart OB UI Tests @smoke', () => {
     await modelPage.verifyModelPageURL();
   });
 
-  test('Model Chart tab plots model performance against the selected axes', async ({ modelPage, modelChartPage }) => {
+  test('Model Chart tab plots model performance against the selected axes', async ({ modelPage, modelChart }) => {
     // The catalog owns its tabs, so the chart view is opened from there.
     await modelPage.verifyChartTab();
     await modelPage.clickChartTab();
     // The chart comes up under its own heading, with a selector naming each plotted metric.
-    await modelChartPage.verifyChartDisplayed();
-    await modelChartPage.verifyAxisSelectorsDisplayed();
+    await modelChart.verifyChartDisplayed();
+    await modelChart.verifyAxisSelectorsDisplayed();
     // Both axes are titled for the metrics their selectors report, and the series is drawn.
-    await modelChartPage.verifyAxisTitlesMatchSelectors();
-    await modelChartPage.verifyChartPlotsDataPoints();
+    await modelChart.verifyAxisTitlesMatchSelectors();
+    await modelChart.verifyChartPlotsDataPoints();
   });
 });

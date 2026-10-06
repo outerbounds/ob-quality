@@ -1,10 +1,10 @@
-import { ModelChartPage } from '@pages/models/model-chart-page';
+import { ModelChartPage } from '@pages/models/model-chart';
 import { ModelPage } from '@pages/models/model-page';
 import { test as baseTest, expect } from '@page-setup';
 
 type ModelFixtures = {
   modelPage: ModelPage;
-  modelChartPage: ModelChartPage;
+  modelChart: ModelChartPage;
 };
 
 export const test = baseTest.extend<ModelFixtures>({
@@ -12,7 +12,7 @@ export const test = baseTest.extend<ModelFixtures>({
     await use(new ModelPage());
   },
 
-  modelChartPage: async ({}, use) => {
+  modelChart: async ({}, use) => {
     await use(new ModelChartPage());
   },
 });
