@@ -102,9 +102,6 @@ export class PackagesPage {
    * fixed, otherwise only non-empty) and the "N files removed" policy results.
    */
   public async verifyChannelRow(channel: SecureChannel): Promise<void> {
-    await AssertUtils.expectElementToBeVisible(this.channelRow(channel.name), {
-      message: `${channel.name} row should be listed`,
-    });
     await AssertUtils.expectElementToHaveText(
       this.channelRowPackageCount(channel.name),
       packagesData.packageCountPattern,

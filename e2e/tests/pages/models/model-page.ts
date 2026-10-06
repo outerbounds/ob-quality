@@ -17,10 +17,11 @@ import {
 } from '@testdata/models/catalog-test-data';
 
 export class ModelPage {
+  private readonly modelPageURL = (): string => `${BASE_URL}/catalog/p/${catalogData.project}`;
   private readonly resourcesButton = (): Locator =>
     LocatorUtils.getLocatorByRole('navigation').getByRole('button', { name: 'Resources', exact: true });
   private readonly modelLink = (): Locator =>
-    LocatorUtils.getLocator(`nav a[href="${new URL(this.modelPageURL(catalogData.project)).pathname}"]`);
+    LocatorUtils.getLocator(`nav a[href="${new URL(this.modelPageURL()).pathname}"]`);
   private readonly modelHeader = (): Locator => LocatorUtils.getLocatorByTestId('catalog-page-heading');
   private readonly catalog = (): Locator => LocatorUtils.getLocatorByTestId('model-catalog-browse');
   private readonly modelHeadingText = (): Locator => this.modelHeader().locator('h1');
@@ -49,12 +50,8 @@ export class ModelPage {
   private readonly columnHeader = (label: string): Locator =>
     this.catalog().getByRole('columnheader', { name: label, exact: true });
 
-  private modelPageURL(project: string): string {
-    return `${BASE_URL}/catalog/p/${project}`;
-  }
-
   public async navigateToDashboard(): Promise<void> {
-    await PageUtils.gotoURL(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await PageUtils.gotoURL(BASE_URL);
   }
 
   /** Accepts dashboard subroutes and query strings while keeping the configured route boundary. */
@@ -89,7 +86,7 @@ export class ModelPage {
   }
 
   public async verifyModelPageURL(): Promise<void> {
-    await AssertUtils.expectPageToHaveURL(this.modelPageURL(catalogData.project), {
+    await AssertUtils.expectPageToHaveURL(this.modelPageURL(), {
       message: 'Models should open the requested project catalog',
     });
   }

@@ -12,6 +12,7 @@ test.describe('Packages Page OB UI Tests @smoke', () => {
   test.beforeEach('Navigate to the Packages page', async ({ packagesPage }) => {
     await packagesPage.navigateToPackagesPage();
     await packagesPage.verifyPackagesHeading();
+    await packagesPage.verifyPackagesPageURL();
   });
 
   // P1 — Packages > Packages List > Verify page UI shows heading, summary, columns and a row per secure channel
@@ -34,8 +35,5 @@ test.describe('Packages Page OB UI Tests @smoke', () => {
         await packagesPage.verifyChannelRow(channel);
       });
     }
-    await test.step('Verify the page did not redirect', async () => {
-      await packagesPage.verifyPackagesPageURL();
-    });
   });
 });
