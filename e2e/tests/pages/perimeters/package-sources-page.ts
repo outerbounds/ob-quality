@@ -1,21 +1,19 @@
-import { AssertUtils, LocatorUtils, PageUtils, STANDARD_TIMEOUT } from '@anaconda/playwright-utils';
+import { AssertUtils, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
 import { assignedPolicyName, findChannel, loadChannelsPayload } from '@pages/perimeters/channel-policy-api';
 import { type ChannelsWithArtifactsPayload } from '@pages/perimeters/channel-policy-types';
 import { packageSourcesURL } from '@pages/perimeters/perimeters-routes';
 import { SELECTED_CLASS, requireValue } from '@pages/perimeters/perimeters-utils';
 import { type Locator } from '@playwright/test';
 import {
-  type SecureChannel,
   baselinePolicy,
   codeRoutesData,
   packageSourcesData,
+  type secureChannels,
 } from '@testdata/perimeters/package-sources-test-data';
 
-/**
- * Perimeters > Code > Package Sources: the secure channel list and the policy tags of each channel. Timing: the load
- * itself waits for the slow (10–15s) channel query, so the first tab and list checks only allow STANDARD_TIMEOUT for
- * rendering.
- */
+type SecureChannel = (typeof secureChannels)[number];
+
+/** Perimeters > Code > Package Sources: the secure channel list and the policy tags of each channel. */
 export class PackageSourcesPage {
   private readonly perimetersHeading = '#center-content h1';
   /** Code and Package Sources link to the same route; the sub-tab strip is the "flat" one. */
@@ -39,7 +37,7 @@ export class PackageSourcesPage {
   /** Opens Package Sources of the test perimeter and keeps the page's own ChannelsWithArtifacts response. */
   public async loadPackageSources(): Promise<void> {
     this.loadedChannels = await loadChannelsPayload(() =>
-      PageUtils.gotoURL(packageSourcesURL(packageSourcesData.perimeter), { waitUntil: 'domcontentloaded' }),
+      PageUtils.gotoURL(packageSourcesURL(packageSourcesData.perimeter)),
     );
   }
 
@@ -55,11 +53,9 @@ export class PackageSourcesPage {
     });
   }
 
-  /** First check after a load, so it allows the tabs time to render. */
   public async verifyCodeTabSelected(): Promise<void> {
     await AssertUtils.expectElementToHaveClass(this.codeTab, SELECTED_CLASS, {
       message: 'Code tab should be selected',
-      timeout: STANDARD_TIMEOUT,
     });
   }
 
@@ -75,7 +71,7 @@ export class PackageSourcesPage {
     await AssertUtils.expectElementToHaveText(
       this.secureChannelsHeading,
       packageSourcesData.secureChannelsHeading(count),
-      { message: `Secure channels heading should state a count of ${count}`, timeout: STANDARD_TIMEOUT },
+      { message: `Secure channels heading should state a count of ${count}` },
     );
     await AssertUtils.expectElementToHaveCount(this.secureChannelRows, count, {
       message: `Secure channels list should have exactly ${count} row(s)`,

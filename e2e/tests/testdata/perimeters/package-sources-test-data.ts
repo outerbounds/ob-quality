@@ -1,7 +1,5 @@
 import { escapeRegExp } from '@anaconda/playwright-utils';
-
-/** A count as the app renders it, with or without digit grouping: "5530" or "5,530". */
-const COUNT = String.raw`\d[\d,]*`;
+import { BASE_URL } from '@playwright-config';
 
 export const packageSourcesData = {
   perimeter: 'default',
@@ -11,8 +9,9 @@ export const packageSourcesData = {
   selectedClass: 'selected',
   /** Secure channels heading, e.g. "3 secure channels" or "1 secure channel". */
   secureChannelsHeading: (count: number): RegExp => new RegExp(`^${count} secure channels?$`),
-  /** Secure channel subtitle `<source> · <count> packages`; the count is volatile, so only its shape is asserted. */
-  secureChannelSubtitle: (source: string): RegExp => new RegExp(`^${escapeRegExp(source)} · ${COUNT} packages?$`),
+  /** Secure channel subtitle `<source> · <count> packages`, e.g. "main · 5,530 packages"; the count is volatile. */
+  secureChannelSubtitle: (source: string): RegExp =>
+    new RegExp(String.raw`^${escapeRegExp(source)} · \d[\d,]* packages?$`),
 } as const;
 
 /** Dashboard route of Perimeters (relative to the dashboard URL) and the Package Sources route of a perimeter. */
@@ -31,17 +30,14 @@ export const baselinePolicy = {
   tag: 'Default',
 } as const;
 
-export type SecureChannel = {
-  readonly name: string;
-  readonly source: string;
-};
+/** The environment name from the dashboard host, e.g. "dev-coldbrewcrew" from ui.dev-coldbrewcrew.outerbounds.xyz. */
+const environment = new URL(BASE_URL).hostname.split('.')[1];
+/** Secure channel names of the perimeter start with "ob-<environment>/<perimeter>". */
+const channelPrefix = `ob-${environment}/${packageSourcesData.perimeter}`;
 
-/**
- * Every secure channel of the dev-coldbrewcrew environment, in the order the Package Sources list renders them; names
- * are specific to that environment.
- */
-export const secureChannels: readonly SecureChannel[] = [
-  { name: 'ob-dev-coldbrewcrew/default--main', source: 'main' },
-  { name: 'ob-dev-coldbrewcrew/default--main-x', source: 'main-x' },
-  { name: 'ob-dev-coldbrewcrew/default--msys2', source: 'msys2' },
-];
+/** Every secure channel of the perimeter, in the order the Package Sources list renders them. */
+export const secureChannels = [
+  { name: `${channelPrefix}--main`, source: 'main' },
+  { name: `${channelPrefix}--main-x`, source: 'main-x' },
+  { name: `${channelPrefix}--msys2`, source: 'msys2' },
+] as const;

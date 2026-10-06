@@ -6,7 +6,8 @@ import { policyApiData } from '@testdata/perimeters/package-sources-test-data';
 
 /**
  * Runs `trigger` (a navigation) and returns the ChannelsWithArtifacts response the page loads with it, so the UI can be
- * compared with exactly what the page received.
+ * compared with exactly what the page received. The query often takes 10–15s, so the default 5s fails; once it has
+ * arrived, the page is loaded and the later checks need no override.
  */
 export async function loadChannelsPayload(trigger: () => Promise<unknown>): Promise<ChannelsWithArtifactsPayload> {
   const responsePromise = PageUtils.waitForResponse(
