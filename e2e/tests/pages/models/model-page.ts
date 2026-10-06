@@ -114,7 +114,9 @@ export class ModelPage {
   }
 
   public async verifyModelsTab(): Promise<void> {
+    //added timeout because the tab might take longer to load models
     await AssertUtils.expectElementToBeVisible(this.modelsTab(), {
+      timeout: STANDARD_TIMEOUT,
       message: 'Models tab should be visible',
     });
   }
@@ -123,6 +125,10 @@ export class ModelPage {
     await AssertUtils.expectElementToBeVisible(this.chartTab(), {
       message: 'Model Chart tab should be visible',
     });
+  }
+
+  public async clickChartTab(): Promise<void> {
+    await ActionUtils.click(this.chartTab());
   }
 
   public async verifyLicensesTab(): Promise<void> {

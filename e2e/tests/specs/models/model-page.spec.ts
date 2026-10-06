@@ -14,13 +14,13 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyModelLink();
     await modelPage.clickModelLink();
     await modelPage.verifyModelPageURL();
+    await modelPage.verifyModelsTab();
   });
 
   test('Displays catalog tabs and controls with Models selected', async ({ modelPage }) => {
     // Verify the page heading, its model count, and every catalog tab, with Models active on first load.
     await modelPage.verifyModelHeader();
     await modelPage.verifyModelCountBadge();
-    await modelPage.verifyModelsTab();
     await modelPage.verifyChartTab();
     await modelPage.verifyLicensesTab();
     await modelPage.verifyModelsTabSelected();
