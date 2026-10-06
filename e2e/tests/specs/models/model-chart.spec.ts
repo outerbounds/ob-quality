@@ -14,6 +14,7 @@ test.describe('Model Chart OB UI Tests @smoke', () => {
     await modelPage.verifyModelLink();
     await modelPage.clickModelLink();
     await modelPage.verifyModelPageURL();
+    await modelPage.verifyModelsTab();
   });
 
   test('Model Chart tab plots model performance against the selected axes', async ({ modelPage, modelChart }) => {

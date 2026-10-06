@@ -110,7 +110,9 @@ export class ModelPage {
   }
 
   public async verifyModelsTab(): Promise<void> {
+    //added timeout because the tab might take longer to load models
     await AssertUtils.expectElementToBeVisible(this.modelsTab(), {
+      timeout: STANDARD_TIMEOUT,
       message: 'Models tab should be visible',
     });
   }
