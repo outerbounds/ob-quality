@@ -25,7 +25,7 @@ export class ModelPage {
   private readonly modelHeader = (): Locator => LocatorUtils.getLocatorByTestId('catalog-page-heading');
   private readonly catalog = (): Locator => LocatorUtils.getLocatorByTestId('model-catalog-browse');
   private readonly modelHeadingText = (): Locator => this.modelHeader().locator('h1');
-  private readonly modelCountBadge = (): Locator => this.modelHeader().locator('.badge.counter');
+  protected readonly modelCountBadge = (): Locator => this.modelHeader().locator('.badge.counter');
   private readonly modelsTab = (): Locator => this.catalog().locator('button[title="models"]');
   private readonly chartTab = (): Locator => this.catalog().locator('button[title="model-chart"]');
   private readonly licensesTab = (): Locator => this.catalog().locator('button[title="licenses"]');
@@ -42,17 +42,17 @@ export class ModelPage {
   /** The option's visible text sits in the only titled node of its row. */
   private readonly filterOptionLabel = (checkbox: string): Locator => this.menuCheckboxRow(checkbox).locator('[title]');
   /** Table headers expose no data attribute, so the column role plus its name is the only stable handle. */
-  private readonly columnHeader = (label: string): Locator =>
+  protected readonly columnHeader = (label: string): Locator =>
     this.catalog().getByRole('columnheader', { name: label, exact: true });
-  private readonly modelTable = (): Locator => LocatorUtils.getLocatorByTestId('catalog-model-table');
-  private readonly modelTableHeaders = (): Locator => this.modelTable().getByRole('columnheader');
+  protected readonly modelTable = (): Locator => LocatorUtils.getLocatorByTestId('catalog-model-table');
+  protected readonly modelTableHeaders = (): Locator => this.modelTable().getByRole('columnheader');
   /** A prefix match on each row's own model id takes the rows as a set, skipping the virtual spacer row. */
-  private readonly modelRows = (): Locator => this.modelTable().locator('[data-qa-id^="catalog-model-row-"]');
+  protected readonly modelRows = (): Locator => this.modelTable().locator('[data-qa-id^="catalog-model-row-"]');
   /** Addressing a row by its own id keeps a re-windowing table from shifting a different row under a check. */
   private readonly modelRow = (modelId: string): Locator => this.modelTable().locator(`[data-qa-id="${modelId}"]`);
   private readonly modelRowCells = (row: Locator): Locator => row.getByRole('cell');
   /** The rows' scroll container exposes no data attribute, so its class inside the catalog is the handle. */
-  private readonly modelTableScroller = (): Locator => this.catalog().locator('div.tableWrapper');
+  protected readonly modelTableScroller = (): Locator => this.catalog().locator('div.tableWrapper');
 
   /** The table's column headers as the scroll sweep found them, in the order the table renders them. */
   private scannedColumns: string[] = [];
@@ -201,10 +201,7 @@ export class ModelPage {
     }
   }
 
-  /**
-   * Clearing an option removes its filter from the filter bar; checking it again restores the filter and
-   * returns the menu to its default state, so each option starts from the same baseline.
-   */
+  /** Clearing an option removes its filter from the bar; checking it again restores both states. */
   public async verifyEveryFilterOptionTogglesItsFilter(): Promise<void> {
     // The menu stays up through every checkbox click, so it is opened once and closed at the end.
     await this.openAllFiltersMenu();
@@ -388,14 +385,21 @@ export class ModelPage {
   public async scrollThroughEveryModelRow(): Promise<void> {
     this.scannedColumns = await ElementUtils.getAllTexts(this.modelTableHeaders());
     this.scannedRows.clear();
-    await this.scrollModelTableToTop();
-    while (true) {
+    await this.sweepModelTable(async () => {
       for (const modelId of await this.readRenderedModelRowIds()) {
         if (!this.scannedRows.has(modelId)) {
           this.scannedRows.set(modelId, await this.readModelRowCells(modelId));
         }
       }
+    });
+  }
+
+  /** Walk the table from its first row to its last, letting the caller read each rendered window. */
+  protected async sweepModelTable(readRenderedWindow: () => Promise<void>): Promise<void> {
+    await this.scrollModelTableToTop();
+    while (true) {
       // Read before the break, so the rows rendered at the bottom are collected like any other window.
+      await readRenderedWindow();
       if (await this.isModelTableAtBottom()) {
         return;
       }
@@ -404,9 +408,43 @@ export class ModelPage {
       // Short of the bottom every page has to advance, so a stalled scroll says so instead of looping away.
       expect(
         await this.readModelTableScrollTop(),
-        `Model table should scroll forward from ${previousTop}px, with ${this.scannedRows.size} rows collected`,
+        `Model table should scroll forward from ${previousTop}px`,
       ).toBeGreaterThan(previousTop);
     }
+  }
+
+  /** Starts the sweep at the first row; the offset is set outright, as a Home key needs focus. */
+  private async scrollModelTableToTop(): Promise<void> {
+    await this.modelTableScroller().evaluate(container => {
+      container.scrollTop = 0;
+    });
+    await this.waitForRenderedModelRows();
+  }
+
+  /** Scroll on by exactly one viewport, so consecutive windows sit edge to edge and skip no row. */
+  private async scrollModelTableForward(): Promise<void> {
+    await this.modelTableScroller().evaluate(container => {
+      container.scrollTop += container.clientHeight;
+    });
+    await this.waitForRenderedModelRows();
+  }
+
+  /** Wait for the rows to settle; the helper reports a timeout by returning false, not by raising. */
+  private async waitForRenderedModelRows(): Promise<void> {
+    const stable = await ElementUtils.waitForElementToBeStable(this.modelRows().last());
+    expect(stable, 'Rendered model rows should stabilize').toBe(true);
+  }
+
+  /** Read the row container's current vertical scroll offset. */
+  private async readModelTableScrollTop(): Promise<number> {
+    return await this.modelTableScroller().evaluate(container => container.scrollTop);
+  }
+
+  /** Check whether the table is at the bottom, allowing 2px tolerance. */
+  private async isModelTableAtBottom(): Promise<boolean> {
+    return await this.modelTableScroller().evaluate(
+      container => container.scrollTop + container.clientHeight >= container.scrollHeight - 2,
+    );
   }
 
   /** Verify each collected row has a populated cell per column. */
@@ -451,34 +489,5 @@ export class ModelPage {
   /** Scoping the cells to one row's own id keeps each cell text on the row it is recorded against. */
   private async readModelRowCells(modelId: string): Promise<string[]> {
     return await ElementUtils.getAllTexts(this.modelRowCells(this.modelRow(modelId)));
-  }
-
-  /** Starts the sweep from the first row whatever the table had scrolled to beforehand. */
-  private async scrollModelTableToTop(): Promise<void> {
-    await ActionUtils.pressLocatorKeyboard(this.modelTableScroller(), 'Home');
-    await this.waitForRenderedModelRows();
-  }
-
-  /** Scroll down one page and wait for rows to stabilize. */
-  private async scrollModelTableForward(): Promise<void> {
-    await ActionUtils.pressLocatorKeyboard(this.modelTableScroller(), 'PageDown');
-    await this.waitForRenderedModelRows();
-  }
-
-  /** Wait for the last rendered model row to become stable. */
-  private async waitForRenderedModelRows(): Promise<void> {
-    await ElementUtils.waitForElementToBeStable(this.modelRows().last());
-  }
-
-  /** Read the row container's current vertical scroll offset. */
-  private async readModelTableScrollTop(): Promise<number> {
-    return await this.modelTableScroller().evaluate(container => container.scrollTop);
-  }
-
-  /** Check whether the table is at the bottom, allowing 2px tolerance. */
-  private async isModelTableAtBottom(): Promise<boolean> {
-    return await this.modelTableScroller().evaluate(
-      container => container.scrollTop + container.clientHeight >= container.scrollHeight - 2,
-    );
   }
 }
