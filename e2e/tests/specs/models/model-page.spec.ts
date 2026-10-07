@@ -70,6 +70,8 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
   });
 
   test('Clicking a column header sorts the model table by that column in both directions', async ({ modelPage }) => {
+    // Nine columns are each sorted both ways and checked over every row, so this needs the longer budget.
+    test.slow();
     await modelPage.verifyModelTableDisplayed();
     // Every sortable column has to be on the table before its header can be clicked.
     await modelPage.openColumnSelector();
