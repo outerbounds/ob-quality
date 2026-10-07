@@ -1,9 +1,9 @@
 import { test } from '@models-fixture';
+import { modelChartData } from '@testdata/models/model-chart-test-data';
 import { getUserAuthPath } from 'tests/storage-setup/cookie-utils';
 import { adminAutomationUser } from 'tests/storage-setup/user-test-data';
 
 test.describe('Model Chart OB UI Tests @smoke', () => {
-  // Use the storage state for the admin automation user to maintain authentication across tests.
   test.use({ storageState: getUserAuthPath(adminAutomationUser) });
 
   test.beforeEach('Navigate to Model Catalog Page', async ({ modelPage }) => {
@@ -18,14 +18,59 @@ test.describe('Model Chart OB UI Tests @smoke', () => {
   });
 
   test('Model Chart tab plots model performance against the selected axes', async ({ modelPage, modelChart }) => {
-    // The catalog owns its tabs, so the chart view is opened from there.
     await modelPage.verifyChartTab();
     await modelPage.clickChartTab();
-    // The chart comes up under its own heading, with a selector naming each plotted metric.
     await modelChart.verifyChartDisplayed();
     await modelChart.verifyAxisSelectorsDisplayed();
-    // Both axes are titled for the metrics their selectors report, and the series is drawn.
-    await modelChart.verifyAxisTitlesMatchSelectors();
+    await modelChart.verifyXAxisTitleMatchesSelector();
+    await modelChart.verifyYAxisTitleMatchesSelector();
     await modelChart.verifyChartPlotsDataPoints();
+  });
+
+  test('Model Chart point tooltip shows the model name and X/Y metric values', async ({ modelPage, modelChart }) => {
+    await modelPage.verifyChartTab();
+    await modelPage.clickChartTab();
+    await modelChart.verifyChartDisplayed();
+    await modelChart.openAxisDropdown('X');
+    await modelChart.selectAxisOption(modelChartData.xAxisOptions[0].metric);
+    await modelChart.verifySelectedAxisMetric('X', modelChartData.xAxisOptions[0].metric);
+    await modelChart.openAxisDropdown('Y');
+    await modelChart.selectAxisOption(modelChartData.yAxisOptions[0].metric);
+    await modelChart.verifySelectedAxisMetric('Y', modelChartData.yAxisOptions[0].metric);
+    await modelChart.verifyChartPlotsDataPoints();
+
+    await modelChart.hoverChartPoint();
+    await modelChart.verifyPointTooltipDisplayed();
+    await modelChart.verifyTooltipModelName();
+    await modelChart.verifyTooltipAxisMetric('X');
+    await modelChart.verifyTooltipAxisMetric('Y');
+  });
+
+  test('Model Chart updates the X-axis title for every dropdown option', async ({ modelPage, modelChart }) => {
+    await modelPage.verifyChartTab();
+    await modelPage.clickChartTab();
+    await modelChart.verifyChartDisplayed();
+    await modelChart.verifyAxisSelectorsDisplayed();
+
+    for (const { metric, title } of modelChartData.xAxisOptions) {
+      await modelChart.openAxisDropdown('X');
+      await modelChart.selectAxisOption(metric);
+      await modelChart.verifySelectedAxisMetric('X', metric);
+      await modelChart.verifyAxisTitle('X', title);
+    }
+  });
+
+  test('Model Chart updates the Y-axis title for every dropdown option', async ({ modelPage, modelChart }) => {
+    await modelPage.verifyChartTab();
+    await modelPage.clickChartTab();
+    await modelChart.verifyChartDisplayed();
+    await modelChart.verifyAxisSelectorsDisplayed();
+
+    for (const { metric, title } of modelChartData.yAxisOptions) {
+      await modelChart.openAxisDropdown('Y');
+      await modelChart.selectAxisOption(metric);
+      await modelChart.verifySelectedAxisMetric('Y', metric);
+      await modelChart.verifyAxisTitle('Y', title);
+    }
   });
 });
