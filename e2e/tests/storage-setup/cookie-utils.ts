@@ -18,7 +18,7 @@ const COOKIE_DOMAIN = new URL(BASE_URL).hostname;
 // Path of the cookie that will be checked for expiration. If the path is set to '/', the path check will be skipped.
 const COOKIE_PATH = '/';
 //If your BASE_URL is different from the originUrl, you can change it here else you can use BASE_URL from @playwright-config
-const ORIGIN_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+const ORIGIN_URL = BASE_URL;
 // Alternative:  If your BASE_URL is different from the originUrl, you can adjust it here.
 // const ORIGIN_URL = 'https://nucleus-latest.anacondaconnect.com';
 

@@ -41,7 +41,7 @@ for (const artifactDirectory of artifactDirectories) {
 }
 
 for (const domain of domains) {
-  const oppositeDomain = domains.find(candidate => candidate !== domain);
+  const otherDomains = domains.filter(candidate => candidate !== domain);
   const domainFiles = (
     await Promise.all(artifactDirectories.map(directory => filesUnder(path.join(testsRoot, directory, domain))))
   )
@@ -50,14 +50,14 @@ for (const domain of domains) {
 
   for (const filePath of domainFiles) {
     const source = await readFile(filePath, 'utf8');
-    const forbiddenImports = [
-      `@pages/${oppositeDomain}/`,
-      `@testdata/${oppositeDomain}/`,
-      `@${oppositeDomain}-fixture`,
-      `tests/pages/${oppositeDomain}/`,
-      `tests/testdata/${oppositeDomain}/`,
-      `tests/fixtures/${oppositeDomain}/`,
-    ];
+    const forbiddenImports = otherDomains.flatMap(otherDomain => [
+      `@pages/${otherDomain}/`,
+      `@testdata/${otherDomain}/`,
+      `@${otherDomain}-fixture`,
+      `tests/pages/${otherDomain}/`,
+      `tests/testdata/${otherDomain}/`,
+      `tests/fixtures/${otherDomain}/`,
+    ]);
 
     for (const forbiddenImport of forbiddenImports) {
       if (source.includes(forbiddenImport)) {
