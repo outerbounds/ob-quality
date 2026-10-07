@@ -5,7 +5,7 @@ import { secureChannels } from '@testdata/packages/packages-test-data';
 import { getUserAuthPath } from 'tests/storage-setup/cookie-utils';
 import { adminAutomationUser } from 'tests/storage-setup/user-test-data';
 
-test.describe('Packages Page OB UI Tests @smoke', () => {
+test.describe('Packages Page OB UI Tests', () => {
   // Use the storage state for the admin automation user to maintain authentication across tests.
   test.use({ storageState: getUserAuthPath(adminAutomationUser) });
 
@@ -15,40 +15,98 @@ test.describe('Packages Page OB UI Tests @smoke', () => {
     await packagesPage.verifyPackagesPageURL();
   });
 
-  // P1 — Packages > Packages List > Verify page UI shows heading, summary, columns and a row per secure channel
-  test('Packages page shows its heading, summary, columns and a row per secure channel', async ({ packagesPage }) => {
-    await test.step('Verify the browser tab title and the active sidebar item', async () => {
-      await packagesPage.verifyPageTitle();
-      await packagesPage.verifyPackagesNavItemActive();
-    });
-    await test.step('Verify the summary channel count equals the number of rows', async () => {
-      await packagesPage.verifySummaryCountMatchesRows();
-    });
-    await test.step('Verify the column headers and their order', async () => {
-      await packagesPage.verifyColumnHeadersInOrder();
-    });
-    await test.step('Verify the table lists one row per secure channel', async () => {
-      await packagesPage.verifyChannelRowCount(secureChannels);
-    });
-    for (const channel of secureChannels) {
-      await test.step(`Verify the ${channel.source} row shows its package count, source, policy and results`, async () => {
-        await packagesPage.verifyChannelRow(channel);
+  test.describe('Smoke @smoke', () => {
+    // P1 — Packages > Packages List > Verify page UI shows heading, summary, columns and a row per secure channel
+    test('Packages page shows its heading, summary, columns and a row per secure channel', async ({ packagesPage }) => {
+      await test.step('Verify the browser tab title and the active sidebar item', async () => {
+        await packagesPage.verifyPageTitle();
+        await packagesPage.verifyPackagesNavItemActive();
       });
-    }
+      await test.step('Verify the summary channel count equals the number of rows', async () => {
+        await packagesPage.verifySummaryCountMatchesRows();
+      });
+      await test.step('Verify the column headers and their order', async () => {
+        await packagesPage.verifyColumnHeadersInOrder();
+      });
+      await test.step('Verify the table lists one row per secure channel', async () => {
+        await packagesPage.verifyChannelRowCount(secureChannels);
+      });
+      for (const channel of secureChannels) {
+        await test.step(`Verify the ${channel.source} row: package count, source, policy, results`, async () => {
+          await packagesPage.verifyChannelRow(channel);
+        });
+      }
+    });
+
+    // P1 — Packages > Packages List > Verify sorting by Secure Channel (descending, then ascending)
+    test('Sorting by Secure Channel orders channels descending, then ascending', async ({ packagesPage }) => {
+      await test.step('Verify the channels are listed A→Z on load', async () => {
+        await packagesPage.verifyRowsSortedBy('Secure Channel', 'ascending', secureChannels);
+      });
+      await test.step('Click Secure Channel and verify the channels are sorted Z→A', async () => {
+        await packagesPage.clickColumnHeader('Secure Channel');
+        await packagesPage.verifyRowsSortedBy('Secure Channel', 'descending', secureChannels);
+      });
+      await test.step('Click Secure Channel again and verify the initial A→Z order is restored', async () => {
+        await packagesPage.clickColumnHeader('Secure Channel');
+        await packagesPage.verifyRowsSortedBy('Secure Channel', 'ascending', secureChannels);
+      });
+    });
+
+    // P1 — Packages > Packages List > Verify clicking a secure channel row opens that channel's details
+    test("Clicking each secure channel row opens that channel's details", async ({
+      packagesPage,
+      channelDetailsPage,
+    }) => {
+      for (const channel of secureChannels) {
+        await test.step(`Open the ${channel.source} channel from its row and verify its details page`, async () => {
+          await packagesPage.clickChannelRow(channel.name);
+          await channelDetailsPage.verifyChannelDetailsPageUrlAndHeader(channel.name);
+        });
+        await test.step('Go back and verify the Packages list opens again', async () => {
+          await channelDetailsPage.clickGoBackLink();
+          await packagesPage.verifyPackagesPageURL();
+          await packagesPage.verifyPackagesHeading();
+        });
+      }
+    });
   });
 
-  // P1 — Packages > Packages List > Verify sorting by Secure Channel (descending, then ascending)
-  test('Sorting by Secure Channel orders channels descending, then ascending', async ({ packagesPage }) => {
-    await test.step('Verify the channels are listed A→Z on load', async () => {
-      await packagesPage.verifyChannelsSortedAscending(secureChannels);
+  test.describe('Regression @reg', () => {
+    // P2 — Packages > Packages List > Verify sorting by Source and that Policy Results is not sortable
+    test('Source sorts both ways and Policy Results is not sortable', async ({ packagesPage }) => {
+      await test.step('Verify only Secure Channel, Source and Policy are marked sortable', async () => {
+        await packagesPage.verifySortableColumnHeaders();
+      });
+      await test.step('Click Source and verify the sources are sorted Z→A', async () => {
+        await packagesPage.clickColumnHeader('Source');
+        await packagesPage.verifyOnlyHeaderSortedDescending('Source');
+        await packagesPage.verifyRowsSortedBy('Source', 'descending', secureChannels);
+      });
+      await test.step('Click Source again and verify the sources are sorted A→Z', async () => {
+        await packagesPage.clickColumnHeader('Source');
+        await packagesPage.verifyNoHeaderSortedDescending();
+        await packagesPage.verifyRowsSortedBy('Source', 'ascending', secureChannels);
+      });
     });
-    await test.step('Click Secure Channel and verify the channels are sorted Z→A', async () => {
-      await packagesPage.clickSecureChannelHeader();
-      await packagesPage.verifyChannelsSortedDescending(secureChannels);
-    });
-    await test.step('Click Secure Channel again and verify the initial A→Z order is restored', async () => {
-      await packagesPage.clickSecureChannelHeader();
-      await packagesPage.verifyChannelsSortedAscending(secureChannels);
+
+    // P2 — Packages > Packages List > Verify each channel's package count equals the count on its channel page
+    test('Each channel package count in the list equals the count on its channel page', async ({
+      packagesPage,
+      channelDetailsPage,
+    }) => {
+      for (const channel of secureChannels) {
+        await test.step(`Compare the ${channel.source} package count in the list with its channel page`, async () => {
+          const listedCount = await packagesPage.getChannelPackageCount(channel.name);
+          await packagesPage.clickChannelRow(channel.name);
+          await channelDetailsPage.verifySummaryPackageCount(listedCount);
+        });
+        await test.step('Go back and verify the Packages list opens again', async () => {
+          await channelDetailsPage.clickGoBackLink();
+          await packagesPage.verifyPackagesPageURL();
+          await packagesPage.verifyPackagesHeading();
+        });
+      }
     });
   });
 });

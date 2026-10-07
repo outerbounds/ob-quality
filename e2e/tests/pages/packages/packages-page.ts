@@ -12,6 +12,8 @@ import { packagesData, secureChannels } from '@testdata/packages/packages-test-d
 
 type SecureChannel = (typeof secureChannels)[number];
 type PackagesColumn = (typeof packagesData.columns)[number];
+type TextSortColumn = Extract<PackagesColumn, 'Secure Channel' | 'Source'>;
+type SortOrder = 'ascending' | 'descending';
 
 /** The Packages page: the secure channel list of a project. */
 export class PackagesPage {
@@ -22,12 +24,23 @@ export class PackagesPage {
   private readonly columnHeaders = '#center-content table thead th';
   private readonly channelRows = '[data-testid="package-row"]';
   private readonly channelNames = `${this.channelRows} .channel .name`;
-  /** Table headers expose no data attribute, so the column role plus its name (the first column) is the only handle. */
-  private readonly secureChannelHeader = (): Locator =>
-    LocatorUtils.getLocator('#center-content table').getByRole('columnheader', {
-      name: packagesData.columns[0],
-      exact: true,
-    });
+  /** Sort state shows only in header classes (there is no aria-sort): "sortable", plus "flipped" while descending. */
+  private readonly sortableColumnHeaders = `${this.columnHeaders}.sortable`;
+  private readonly descendingColumnHeaders = `${this.columnHeaders}.flipped`;
+  /** Table headers expose no data attribute, so the column role plus its name is the only handle. */
+  private readonly columnHeader = (column: PackagesColumn): Locator =>
+    LocatorUtils.getLocator('#center-content table').getByRole('columnheader', { name: column, exact: true });
+  /** Last resort: Source, Policy and Policy Results cells carry no attributes, so the column position is used. */
+  private readonly columnCell = (column: PackagesColumn): string =>
+    `td:nth-of-type(${packagesData.columns.indexOf(column) + 1})`;
+  /** Every row's cell in one column, in display order. */
+  private readonly columnCells = (column: PackagesColumn): Locator =>
+    LocatorUtils.getLocator(`${this.channelRows} > ${this.columnCell(column)}`);
+  /** The channel field each text-sorted column orders by. */
+  private readonly sortKey = { 'Secure Channel': 'name', Source: 'source' } as const;
+  /** The cells a column sorts by; for Secure Channel the name alone, as its cell also holds the package count. */
+  private readonly sortValueCells = (column: TextSortColumn): Locator =>
+    column === 'Source' ? this.columnCells(column) : LocatorUtils.getLocator(this.channelNames);
   private readonly resourcesButton = (): Locator =>
     LocatorUtils.getLocatorByRole('navigation').getByRole('button', {
       name: packagesData.resourcesNavLabel,
@@ -42,9 +55,8 @@ export class PackagesPage {
     });
   private readonly channelRowPackageCount = (name: string): Locator =>
     this.channelRow(name).locator('.channel .packages');
-  /** Last resort: Source, Policy and Policy Results cells carry no attributes, so the column position is used. */
   private readonly channelRowCell = (name: string, column: PackagesColumn): Locator =>
-    this.channelRow(name).locator(`:scope > td:nth-of-type(${packagesData.columns.indexOf(column) + 1})`);
+    this.channelRow(name).locator(`:scope > ${this.columnCell(column)}`);
   private readonly channelRowPolicyTag = (name: string): Locator =>
     this.channelRowCell(name, 'Policy').locator('.badge');
   private readonly channelRowPolicyResults = (name: string): Locator =>
@@ -56,7 +68,7 @@ export class PackagesPage {
 
   public async verifyPackagesPageURL(): Promise<void> {
     await AssertUtils.expectPageToHaveURL(this.packagesPageURL(), {
-      message: 'Browser should still be on the project Packages page',
+      message: 'Browser should be on the project Packages page',
     });
   }
 
@@ -134,22 +146,61 @@ export class PackagesPage {
     );
   }
 
-  public async clickSecureChannelHeader(): Promise<void> {
-    await ActionUtils.click(this.secureChannelHeader());
+  /** Opens a channel's page in Resources > Packages by clicking its row. */
+  public async clickChannelRow(name: string): Promise<void> {
+    await ActionUtils.clickAndNavigate(this.channelRow(name));
   }
 
-  /** Secure channels are listed A→Z by name on load and after the second Secure Channel click. */
-  public async verifyChannelsSortedAscending(channels: readonly SecureChannel[]): Promise<void> {
+  public async clickColumnHeader(column: PackagesColumn): Promise<void> {
+    await ActionUtils.click(this.columnHeader(column));
+  }
+
+  /** Rows are A→Z (ascending) or Z→A (descending) by the column; the expected order is derived from the data. */
+  public async verifyRowsSortedBy(
+    column: TextSortColumn,
+    order: SortOrder,
+    channels: readonly SecureChannel[],
+  ): Promise<void> {
+    const ascending = channels
+      .map(channel => channel[this.sortKey[column]])
+      .sort((previous, next) => previous.localeCompare(next));
     await AssertUtils.expectElementToHaveText(
-      this.channelNames,
-      channels.map(channel => channel.name),
-      { message: 'Channels should be in A→Z order' },
+      this.sortValueCells(column),
+      order === 'ascending' ? ascending : ascending.reverse(),
+      { message: `Rows should be sorted by ${column} ${order === 'ascending' ? 'A→Z' : 'Z→A'}` },
     );
   }
 
-  public async verifyChannelsSortedDescending(channels: readonly SecureChannel[]): Promise<void> {
-    await AssertUtils.expectElementToHaveText(this.channelNames, channels.map(channel => channel.name).reverse(), {
-      message: 'Channels should be in Z→A order',
+  public async verifySortableColumnHeaders(): Promise<void> {
+    await AssertUtils.expectElementToHaveText(this.sortableColumnHeaders, [...packagesData.sortableColumns], {
+      message: `Only ${packagesData.sortableColumns.join(', ')} should be marked sortable`,
     });
+  }
+
+  /**
+   * The descending ("flipped") header shows which column drove a sort; the rows alone can't when two columns share one
+   * order, as Source and Secure Channel do in this project.
+   */
+  public async verifyOnlyHeaderSortedDescending(column: PackagesColumn): Promise<void> {
+    await AssertUtils.expectElementToHaveText(this.descendingColumnHeaders, [column], {
+      message: `Only the ${column} header should show the descending sort`,
+    });
+  }
+
+  /** An ascending sort shows no header mark, so this state looks the same as an unsorted table; check the rows too. */
+  public async verifyNoHeaderSortedDescending(): Promise<void> {
+    await AssertUtils.expectElementToHaveCount(this.descendingColumnHeaders, 0, {
+      message: 'No header should show the descending sort',
+    });
+  }
+
+  /** Reads the "N packages" count of a channel row as a number; the count is volatile, so it is compared, not fixed. */
+  public async getChannelPackageCount(name: string): Promise<number> {
+    const text = await ElementUtils.getText(this.channelRowPackageCount(name));
+    const count = packagesData.packageCountPattern.exec(text)?.[1];
+    if (!count) {
+      throw new Error(`${name} row should show "N packages", got "${text}"`);
+    }
+    return Number(count.replace(/,/g, ''));
   }
 }
