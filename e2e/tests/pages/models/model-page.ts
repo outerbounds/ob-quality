@@ -142,6 +142,10 @@ export class ModelPage {
     });
   }
 
+  public async clickLicensesTab(): Promise<void> {
+    await ActionUtils.click(this.licensesTab());
+  }
+
   /** The active tab is marked only by a "selected" class; there is no aria-selected attribute. */
   public async verifyModelsTabSelected(): Promise<void> {
     await AssertUtils.expectElementToHaveClass(this.modelsTab(), /\bselected\b/, {
