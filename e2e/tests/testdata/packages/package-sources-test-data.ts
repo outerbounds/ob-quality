@@ -1,5 +1,6 @@
 import { escapeRegExp } from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
+import { defaultPolicy } from '@testdata/packages/packages-test-data';
 
 export const packageSourcesData = {
   perimeter: 'default',
@@ -20,6 +21,16 @@ export const packageSourcesData = {
   channelsOperation: 'ChannelsWithArtifacts',
   /** A channel on the shared default policy is tagged with this tag before the policy name. */
   defaultPolicyTag: 'Default',
+  /** The drawer's package count link, e.g. "236 Packages" or "5,533 Packages"; the count is volatile. */
+  drawerPackagesLink: /^(\d{1,3}(,\d{3})+|\d+) Packages?\s*$/,
+} as const;
+
+/** Leading label of each fact row in the channel drawer. */
+export const drawerFactLabels = {
+  contents: 'in channel',
+  source: 'source is',
+  visibility: 'visibility is',
+  activePolicy: 'active policy is',
 } as const;
 
 /** The environment name from the dashboard host, e.g. "dev-coldbrewcrew" from ui.dev-coldbrewcrew.outerbounds.xyz. */
@@ -33,3 +44,12 @@ export const secureChannels = [
   { name: `${channelPrefix}--main-x`, source: 'main-x' },
   { name: `${channelPrefix}--msys2`, source: 'msys2' },
 ] as const;
+
+/** The read-only drawer test uses msys2 (the last secure channel), so it never overlaps policy changes on main-x. */
+export const drawerChannel = {
+  name: secureChannels[2].name,
+  source: secureChannels[2].source,
+  description: `Public channel · ${secureChannels[2].source}`,
+  visibility: 'public',
+  activePolicy: defaultPolicy,
+} as const;

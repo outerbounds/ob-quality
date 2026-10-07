@@ -1,4 +1,4 @@
-import { AssertUtils, BIG_TIMEOUT, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
+import { ActionUtils, AssertUtils, BIG_TIMEOUT, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
 import { packageSourcesData, type secureChannels } from '@testdata/packages/package-sources-test-data';
@@ -64,6 +64,11 @@ export class PackageSourcesPage {
       );
     }
     this.loadedChannels = channels;
+  }
+
+  /** Opens the channel drawer of a secure channel by clicking its row. */
+  public async clickSecureChannel(name: string): Promise<void> {
+    await ActionUtils.click(this.secureChannelRow(name));
   }
 
   public async verifyPackageSourcesURL(): Promise<void> {

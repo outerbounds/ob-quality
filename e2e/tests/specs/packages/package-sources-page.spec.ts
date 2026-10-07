@@ -1,7 +1,7 @@
 // seed: tests/storage-setup/login-storage-setup.ts
 
 import { test } from '@packages-fixture';
-import { secureChannels } from '@testdata/packages/package-sources-test-data';
+import { drawerChannel, drawerFactLabels, secureChannels } from '@testdata/packages/package-sources-test-data';
 import { getUserAuthPath } from 'tests/storage-setup/cookie-utils';
 import { adminAutomationUser } from 'tests/storage-setup/user-test-data';
 
@@ -31,5 +31,27 @@ test.describe('Perimeters Package Sources OB UI Tests @smoke @perimeters', () =>
         await packageSourcesPage.verifySecureChannelTagsMatchPolicy(channel.name);
       });
     }
+  });
+
+  // P1 — Perimeters > Packages > Package Sources > Verify channel drawer facts and Packages link
+  test('Channel drawer shows the channel facts and links to its packages', async ({
+    packageSourcesPage,
+    channelDrawerPage,
+    channelDetailsPage,
+  }) => {
+    await test.step('Open the msys2 channel drawer', async () => {
+      await packageSourcesPage.clickSecureChannel(drawerChannel.name);
+      await channelDrawerPage.verifyDrawerHeader(drawerChannel.name, drawerChannel.description);
+    });
+    await test.step('Verify the channel facts', async () => {
+      await channelDrawerPage.verifyPackagesLink();
+      await channelDrawerPage.verifyFact(drawerFactLabels.source, drawerChannel.source);
+      await channelDrawerPage.verifyFact(drawerFactLabels.visibility, drawerChannel.visibility);
+      await channelDrawerPage.verifyFact(drawerFactLabels.activePolicy, drawerChannel.activePolicy);
+    });
+    await test.step('Click the Packages link and verify the channel page opens in Resources > Packages', async () => {
+      await channelDrawerPage.clickPackagesLink();
+      await channelDetailsPage.verifyChannelDetailsPageUrlAndHeader(drawerChannel.name);
+    });
   });
 });

@@ -20,7 +20,7 @@ const environment = new URL(BASE_URL).hostname.split('.')[1];
 /** Secure channel and policy names of the project start with "ob-<environment>/<project>". */
 const channelPrefix = `ob-${environment}/${packagesData.project}`;
 /** Baseline policy every secure channel is expected to be on before tests run. */
-const defaultPolicy = `${channelPrefix}-default-policy`;
+export const defaultPolicy = `${channelPrefix}-default-policy`;
 
 /**
  * Every secure channel of the project, in ascending name order. main-x has no fixed policy: it is the channel switched
