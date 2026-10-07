@@ -10,14 +10,20 @@ import {
 import { BASE_URL } from '@playwright-config';
 import { type Locator, expect } from '@playwright/test';
 import {
+  type CatalogSortValueKind,
   catalogColumnOptions,
   catalogData,
   catalogFilterOptions,
   catalogFixedColumn,
+  catalogSizeUnits,
+  catalogSortableColumns,
 } from '@testdata/models/catalog-test-data';
 
 /** The configured URL may or may not end with a slash; normalize once so every route check agrees. */
 const DASHBOARD_URL = BASE_URL.replace(/\/$/, '');
+
+/** The two orders the model table can be sorted in; the table has no third, unsorted state. */
+type SortDirection = 'ascending' | 'descending';
 
 export class ModelPage {
   private readonly resourcesButton = (): Locator =>
@@ -53,6 +59,12 @@ export class ModelPage {
   /** Addressing a row by its own id keeps a re-windowing table from shifting a different row under a check. */
   private readonly modelRow = (modelId: string): Locator => this.modelTable().locator(`[data-qa-id="${modelId}"]`);
   private readonly modelRowCells = (row: Locator): Locator => row.getByRole('cell');
+  /**
+   * The sort indicator is an unlabelled icon with no data attribute, rendered inside the header of the
+   * one column the table is currently sorted by, so its class inside the header row is the handle.
+   */
+  private readonly columnSortIndicator = (label: string): Locator => this.columnHeader(label).locator('.icon');
+  private readonly columnSortIndicators = (): Locator => this.modelTableHeaders().locator('.icon');
   /** The rows' scroll container exposes no data attribute, so its class inside the catalog is the handle. */
   private readonly modelTableScroller = (): Locator => this.catalog().locator('div.tableWrapper');
 
@@ -381,6 +393,152 @@ export class ModelPage {
         message: 'Every model table column should have a header label',
       });
     }
+  }
+
+  /** A sort control is marked only by the header's own class; the headers carry no aria-sort attribute. */
+  public async verifyEverySortableColumnHasSortControl(): Promise<void> {
+    for (const { label } of catalogSortableColumns) {
+      await AssertUtils.expectElementToHaveClass(this.columnHeader(label), /\bsortable\b/, {
+        message: `${label} column header should carry a sort control`,
+      });
+    }
+  }
+
+  /** Sort every sortable column ascending in turn and check that column's cells run that way. */
+  public async verifyEverySortableColumnSortsAscending(): Promise<void> {
+    await this.verifyEverySortableColumnSortsIn('ascending');
+  }
+
+  /** Sort every sortable column descending in turn and check that column's cells run that way. */
+  public async verifyEverySortableColumnSortsDescending(): Promise<void> {
+    await this.verifyEverySortableColumnSortsIn('descending');
+  }
+
+  /**
+   * Each column is checked on its own values: a date column has to order by date and a size column by
+   * size, not by the text the cells happen to spell out.
+   */
+  private async verifyEverySortableColumnSortsIn(direction: SortDirection): Promise<void> {
+    for (const { label, kind } of catalogSortableColumns) {
+      await this.sortColumnInDirection(label, direction);
+      await this.verifyModelTableSortedByColumn(label, kind, direction);
+    }
+  }
+
+  /**
+   * A header's first click sorts its column descending and the next click reverses it, so reaching a
+   * chosen direction takes one click or two depending on how that column is already sorted. Driving the
+   * direction rather than counting clicks keeps each check standalone, whatever ran before it.
+   */
+  private async sortColumnInDirection(label: string, direction: SortDirection): Promise<void> {
+    const firstDirection = await this.sortByColumn(label);
+    if (firstDirection === direction) {
+      return;
+    }
+    // A second click that leaves the order unchanged would mean the header stopped responding.
+    const secondDirection = await this.sortByColumn(label);
+    expect(secondDirection, `Clicking the ${label} header again should reverse its ${firstDirection} order`).toBe(
+      direction,
+    );
+  }
+
+  /** Click the header, let the reordered rows settle, and report which way the table now sorts. */
+  private async sortByColumn(label: string): Promise<SortDirection> {
+    await ActionUtils.click(this.columnHeader(label));
+    await this.waitForRenderedModelRows();
+    return await this.readColumnSortDirection(label);
+  }
+
+  /** The sorted header marks descending order with a "flipped" class, which turns its indicator over. */
+  private async readColumnSortDirection(label: string): Promise<SortDirection> {
+    const headerClasses = (await ElementUtils.getAttribute(this.columnHeader(label), 'class')) ?? '';
+    return /\bflipped\b/.test(headerClasses) ? 'descending' : 'ascending';
+  }
+
+  /**
+   * The table windows the rows it renders, but a window is always a contiguous run of the sorted order,
+   * so wherever the table has scrolled to, its rendered cells have to run the sorted way without
+   * turning back. That keeps the check honest without scrolling all 71 rows once per column.
+   */
+  private async verifyModelTableSortedByColumn(
+    label: string,
+    kind: CatalogSortValueKind,
+    direction: SortDirection,
+  ): Promise<void> {
+    await this.verifySortIndicatorOnColumn(label);
+    const cells = await this.readRenderedColumnCells(label);
+    expect(cells.length, `Sorting by ${label} should leave the model table rendering rows to compare`).toBeGreaterThan(
+      1,
+    );
+    const ascending = direction === 'ascending';
+    for (let row = 1; row < cells.length; row++) {
+      const previous = this.sortKey(cells[row - 1], kind, label);
+      const current = this.sortKey(cells[row], kind, label);
+      const order = this.compareSortKeys(previous, current);
+      expect(
+        ascending ? order : -order,
+        `Sorting by ${label} ${direction} should not place "${cells[row - 1]}" before "${cells[row]}"`,
+      ).toBeLessThanOrEqual(0);
+    }
+  }
+
+  /** The column just clicked should be the only one wearing the indicator, so the sort moved with it. */
+  private async verifySortIndicatorOnColumn(label: string): Promise<void> {
+    await AssertUtils.expectElementToBeVisible(this.columnSortIndicator(label), {
+      message: `${label} column header should show the sort indicator once the table is sorted by it`,
+    });
+    await AssertUtils.expectElementToHaveCount(this.columnSortIndicators(), 1, {
+      message: `${label} should be the only column showing a sort indicator`,
+    });
+  }
+
+  /** Read one column's rendered cells in row order, in a single snapshot so no re-render splits them. */
+  private async readRenderedColumnCells(label: string): Promise<string[]> {
+    const column = (await ElementUtils.getAllTexts(this.modelTableHeaders())).indexOf(label);
+    expect(column, `${label} column should be rendered in the model table`).toBeGreaterThanOrEqual(0);
+    return await this.modelRows().evaluateAll(
+      (rows, index) => rows.map(row => (row.querySelectorAll('td')[index]?.innerText ?? '').trim()),
+      column,
+    );
+  }
+
+  /** Turn a cell's displayed text into the value the table orders that column by. */
+  private sortKey(cell: string, kind: CatalogSortValueKind, label: string): string | number {
+    switch (kind) {
+      case 'text':
+        return cell.toLowerCase();
+      case 'date':
+        return this.publishedDate(cell, label);
+      case 'size':
+        return this.sizeInBytes(cell, label);
+      case 'count':
+        return cell.split(',').length;
+    }
+  }
+
+  private compareSortKeys(previous: string | number, current: string | number): number {
+    if (typeof previous === 'string' && typeof current === 'string') {
+      return previous.localeCompare(current);
+    }
+    return Number(previous) - Number(current);
+  }
+
+  /** A text comparison would read "Dec 30, 2023" as earlier than "Sep 12, 2023". */
+  private publishedDate(cell: string, label: string): number {
+    const parsed = Date.parse(cell);
+    expect(Number.isNaN(parsed), `The ${label} cell "${cell}" should read as a date`).toBe(false);
+    return parsed;
+  }
+
+  /** A text comparison would read "986.05 MB" as larger than "1.12 TB", so the unit has to be applied. */
+  private sizeInBytes(cell: string, label: string): number {
+    const match = /^([\d.]+)\s*([A-Z]+)$/.exec(cell);
+    const multiplier = match === null ? undefined : catalogSizeUnits[match[2]];
+    expect(
+      multiplier,
+      `The ${label} cell "${cell}" should read as an amount with a known unit (${Object.keys(catalogSizeUnits).join(', ')})`,
+    ).toBeDefined();
+    return Number(match?.[1]) * Number(multiplier);
   }
 
   /** Verify at least one model row is visible in the virtualized table. */
