@@ -7,6 +7,8 @@ export const packagesData = {
   /** Captures the channel count N from "Listing from N secure channels. …". */
   summaryPattern: /Listing from ([1-9]\d*) secure channels?/,
   resourcesNavLabel: 'Resources',
+  /** Accessible name of the back link on a channel page. */
+  goBackLabel: 'Go back',
   /** Table headers, in the order the table renders them. */
   columns: ['Secure Channel', 'Source', 'Policy', 'Policy Results'],
   /** Matches "5530 packages", "5,530 packages" or "1 package"; counts are volatile, so only the shape is checked. */

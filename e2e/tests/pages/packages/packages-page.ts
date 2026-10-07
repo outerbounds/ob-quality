@@ -134,6 +134,11 @@ export class PackagesPage {
     );
   }
 
+  /** Opens a channel's page in Resources > Packages by clicking its row. */
+  public async clickChannelRow(name: string): Promise<void> {
+    await ActionUtils.clickAndNavigate(this.channelRow(name));
+  }
+
   public async clickSecureChannelHeader(): Promise<void> {
     await ActionUtils.click(this.secureChannelHeader());
   }

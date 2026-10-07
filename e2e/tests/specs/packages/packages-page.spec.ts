@@ -51,4 +51,22 @@ test.describe('Packages Page OB UI Tests @smoke', () => {
       await packagesPage.verifyChannelsSortedAscending(secureChannels);
     });
   });
+
+  // P1 — Packages > Packages List > Verify clicking a secure channel row opens that channel's details
+  test("Clicking each secure channel row opens that channel's details", async ({
+    packagesPage,
+    channelDetailsPage,
+  }) => {
+    for (const channel of secureChannels) {
+      await test.step(`Open the ${channel.source} channel from its row and verify its details page`, async () => {
+        await packagesPage.clickChannelRow(channel.name);
+        await channelDetailsPage.verifyChannelDetailsPageUrlAndHeader(channel.name);
+      });
+      await test.step('Go back and verify the Packages list opens again', async () => {
+        await channelDetailsPage.clickGoBackLink();
+        await packagesPage.verifyPackagesPageURL();
+        await packagesPage.verifyPackagesHeading();
+      });
+    }
+  });
 });
