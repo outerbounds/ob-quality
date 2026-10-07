@@ -12,15 +12,15 @@ import { modelChartData } from '@testdata/models/model-chart-test-data';
 export class ModelChartPage {
   // TODO (WOW-105): Add QA IDs for chart elements that currently use structural or CSS locators.
   private readonly chart = (): Locator => LocatorUtils.getLocatorByTestId('catalog-eval-chart');
-  private readonly chartHeading = (): Locator => this.chart().locator('h4');
+  private readonly chartHeading = (): Locator => LocatorUtils.getLocatorByTestId('catalog-eval-chart-heading');
   private readonly chartFigure = (): Locator => this.chart().getByRole('figure');
   private readonly chartDataPoints = (): Locator => this.chartFigure().locator('circle.lc-point');
   private readonly yAxisSelector = (): Locator => LocatorUtils.getLocatorByTestId('catalog-yaxis-selector');
   private readonly xAxisSelector = (): Locator => LocatorUtils.getLocatorByTestId('catalog-xaxis-selector');
   /** The selected metric sits in the only titled node of its selector. */
   private readonly axisSelectorValue = (selector: Locator): Locator => selector.locator('[title]');
-  private readonly xAxisLabel = (): Locator => this.chartFigure().locator('[data-placement="bottom"] .lc-axis-label');
-  private readonly yAxisLabel = (): Locator => this.chartFigure().locator('[data-placement="left"] .lc-axis-label');
+  private readonly xAxisLabel = (): Locator => LocatorUtils.getLocatorByTestId('scatter-chart-x-axis-label');
+  private readonly yAxisLabel = (): Locator => LocatorUtils.getLocatorByTestId('scatter-chart-y-axis-label');
   /** Dropdown menus are portalled outside the chart; each metric has a unique titled option. */
   private readonly axisOption = (metric: string): Locator =>
     LocatorUtils.getLocator('[data-testid="menu_portal"] button').filter({
@@ -39,14 +39,19 @@ export class ModelChartPage {
 
   /** Any plotted model can exercise the tooltip; points have no individual identifiers, hence `.first()`. */
   public async hoverChartPoint(): Promise<void> {
-    const position = await this.getChartPointPosition();
+    // A plotted circle is visible well before a redraw settles, and a moving point outruns its position.
+    await ElementUtils.waitForElementToBeStable(this.chartDataPoints().first());
     // Approach through the SVG so its pointer tracker receives movement and its highlight cannot intercept it.
     for (const offset of [10, 5, 0]) {
+      // Read the point again each attempt, so a redraw between attempts cannot leave the aim behind.
+      const position = await this.getChartPointPosition();
       await ActionUtils.hover(this.chartFigure(), { position: { x: position.x + offset, y: position.y } });
       if (await ElementUtils.isElementVisible(this.pointTooltip(), { timeout: INSTANT_TIMEOUT })) {
         return;
       }
     }
+    // Fail at the hover that missed; staying silent would surface this as a puzzling tooltip failure.
+    throw new Error('Hovering the first plotted chart point did not display its tooltip');
   }
 
   /** Read the point's rendered center relative to its SVG; the utility library has no geometry helper. */
@@ -151,21 +156,29 @@ export class ModelChartPage {
     });
   }
 
-  /** The axes have to describe the metrics the selectors report, so the plot is never mislabelled. */
-  public async verifyAxisTitlesMatchSelectors(): Promise<void> {
-    for (const [axis, selector] of [
-      ['Y', this.yAxisSelector()],
-      ['X', this.xAxisSelector()],
-    ] as const) {
-      await this.verifyAxisSelectorDisplayed(axis, selector);
-      const metric = await ElementUtils.getText(this.axisSelectorValue(selector));
-      const options = axis === 'X' ? modelChartData.xAxisOptions : modelChartData.yAxisOptions;
-      const option = options.find(option => option.metric === metric);
-      if (!option) {
-        throw new Error(`Missing expected title for ${axis}-axis metric "${metric}"`);
-      }
-      await this.verifyAxisTitle(axis, option.title);
-    }
+  /** The X axis has to describe the metric its selector reports, so the plot is never mislabelled. */
+  public async verifyXAxisTitleMatchesSelector(): Promise<void> {
+    await this.verifyAxisTitleMatchesSelector('X', this.xAxisSelector(), this.xAxisLabel());
+  }
+
+  /** The Y axis has to describe the metric its selector reports, so the plot is never mislabelled. */
+  public async verifyYAxisTitleMatchesSelector(): Promise<void> {
+    await this.verifyAxisTitleMatchesSelector('Y', this.yAxisSelector(), this.yAxisLabel());
+  }
+
+  /**
+   * A title carries its metric plus a unit, e.g. "File size (GB)", and either axis can default to any
+   * metric, so it is matched against its selector; the per-option tests pin the exact titles.
+   */
+  private async verifyAxisTitleMatchesSelector(axis: 'X' | 'Y', selector: Locator, label: Locator): Promise<void> {
+    await this.verifyAxisSelectorDisplayed(axis, selector);
+    const metric = await ElementUtils.getText(this.axisSelectorValue(selector));
+    await AssertUtils.expectElementToBeVisible(label, {
+      message: `${axis} axis title should be visible`,
+    });
+    await AssertUtils.expectElementToContainText(label, metric, {
+      message: `${axis} axis should be titled for the selected "${metric}" metric`,
+    });
   }
 
   /** One visible point is sufficient to verify that the chart plotted a series, hence `.first()`. */

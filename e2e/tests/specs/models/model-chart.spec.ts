@@ -22,7 +22,8 @@ test.describe('Model Chart OB UI Tests @smoke', () => {
     await modelPage.clickChartTab();
     await modelChart.verifyChartDisplayed();
     await modelChart.verifyAxisSelectorsDisplayed();
-    await modelChart.verifyAxisTitlesMatchSelectors();
+    await modelChart.verifyXAxisTitleMatchesSelector();
+    await modelChart.verifyYAxisTitleMatchesSelector();
     await modelChart.verifyChartPlotsDataPoints();
   });
 
