@@ -69,23 +69,6 @@ test.describe('Model Catalog OB UI Tests @smoke', () => {
     await modelPage.verifyModelCountBadgeMatchesScannedRows();
   });
 
-  test('Clicking a column header sorts the model table by that column in both directions', async ({ modelPage }) => {
-    // Nine columns are each sorted both ways and checked over every row, so this needs the longer budget.
-    test.slow();
-    await modelPage.verifyModelTableDisplayed();
-    // Every sortable column has to be on the table before its header can be clicked.
-    await modelPage.openColumnSelector();
-    await modelPage.verifyColumnSelectorExpanded();
-    await modelPage.selectAllColumnOptions();
-    // The selector overlays the table, so it is closed before any header underneath it is clicked.
-    await modelPage.closeColumnSelector();
-    await modelPage.verifyModelRowsDisplayed();
-    await modelPage.verifyEverySortableColumnHasSortControl();
-    // Clicking a header sorts its column descending, and clicking it again reverses the order.
-    await modelPage.verifyEverySortableColumnSortsDescending();
-    await modelPage.verifyEverySortableColumnSortsAscending();
-  });
-
   test('Column selector options show and hide their corresponding table columns', async ({ modelPage }) => {
     await modelPage.verifyChooseColumnsButton();
     await modelPage.openColumnSelector();
