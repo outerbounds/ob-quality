@@ -1,7 +1,8 @@
 import { ActionUtils, AssertUtils, BIG_TIMEOUT, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
-import { packageSourcesData, type secureChannels } from '@testdata/packages/package-sources-test-data';
+import { packageSourcesData } from '@testdata/packages/package-sources-test-data';
+import { type secureChannels } from '@testdata/packages/packages-test-data';
 
 type SecureChannel = (typeof secureChannels)[number];
 
