@@ -3,9 +3,9 @@ import { BASE_URL } from '@playwright-config';
 
 export const packageSourcesData = {
   perimeter: 'default',
-  /** Dashboard route of Perimeters and the Package Sources sub-route of a perimeter (the Code tab's default). */
-  perimetersPath: 'perimetersphase0',
-  sourcesPath: 'code/sources',
+  /** Dashboard route of Perimeters and the Package Sources route of a perimeter (the Packages tab). */
+  perimetersPath: 'governance/perimeters',
+  sourcesPath: 'packages/sources',
   /** The page heading above the perimeter tabs. */
   heading: 'Perimeters',
   /** Tabs are marked active only by the whole "selected" class; there is no aria-selected attribute. */

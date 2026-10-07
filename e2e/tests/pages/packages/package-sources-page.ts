@@ -17,14 +17,12 @@ type ChannelsResponseBody = {
   errors?: unknown[];
 };
 
-/** Perimeters > Code > Package Sources: the secure channel list and the policy tags of each channel. */
+/** Perimeters > Packages (Package Sources): the secure channel list and the policy tags of each channel. */
 export class PackageSourcesPage {
   private readonly packageSourcesURL = (): string =>
     `${BASE_URL}/${packageSourcesData.perimetersPath}/${packageSourcesData.perimeter}/${packageSourcesData.sourcesPath}`;
   private readonly perimetersHeading = '#center-content h1';
-  /** Code and Package Sources link to the same route; the sub-tab strip is the "flat" one. */
-  private readonly codeTab = `.tab-list:not(.flat) a[role="tab"][href$="/${packageSourcesData.sourcesPath}"]`;
-  private readonly packageSourcesTab = `.tab-list.flat a[role="tab"][href$="/${packageSourcesData.sourcesPath}"]`;
+  private readonly packagesTab = `.tab-list a[role="tab"][href$="/${packageSourcesData.sourcesPath}"]`;
   /** Last resort: the tab body is a heading and a table per channel group (secure first) with no other handle. */
   private readonly secureChannelsHeading = '.sourcesTab > p:nth-of-type(1)';
   private readonly secureChannelRows = '.sourcesTab > table:nth-of-type(1) tr';
@@ -80,15 +78,9 @@ export class PackageSourcesPage {
     });
   }
 
-  public async verifyCodeTabSelected(): Promise<void> {
-    await AssertUtils.expectElementToHaveClass(this.codeTab, packageSourcesData.selectedClass, {
-      message: 'Code tab should be selected',
-    });
-  }
-
-  public async verifyPackageSourcesTabSelected(): Promise<void> {
-    await AssertUtils.expectElementToHaveClass(this.packageSourcesTab, packageSourcesData.selectedClass, {
-      message: 'Package Sources sub-tab should be selected',
+  public async verifyPackagesTabSelected(): Promise<void> {
+    await AssertUtils.expectElementToHaveClass(this.packagesTab, packageSourcesData.selectedClass, {
+      message: 'Packages tab should be selected',
     });
   }
 

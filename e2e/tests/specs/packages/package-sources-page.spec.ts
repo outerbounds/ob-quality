@@ -12,15 +12,14 @@ test.describe('Perimeters Package Sources OB UI Tests @smoke @perimeters', () =>
   test.beforeEach('Load Package Sources', async ({ packageSourcesPage }) => {
     // Keeps the page's own ChannelsWithArtifacts response, so the policy tag checks compare the UI with the API.
     await packageSourcesPage.loadPackageSources();
-    await packageSourcesPage.verifyCodeTabSelected();
+    await packageSourcesPage.verifyPackagesTabSelected();
     await packageSourcesPage.verifyPackageSourcesURL();
   });
 
-  // P1 — Perimeters > Code > Package Sources > Verify page lists secure channels and their policy tags
+  // P1 — Perimeters > Packages > Package Sources > Verify page lists secure channels and their policy tags
   test('Package Sources lists the secure channels with their policy tags', async ({ packageSourcesPage }) => {
-    await test.step('Verify the Perimeters heading and that the Code tab opens on Package Sources', async () => {
+    await test.step('Verify the Perimeters heading', async () => {
       await packageSourcesPage.verifyPerimetersHeading();
-      await packageSourcesPage.verifyPackageSourcesTabSelected();
     });
     await test.step('Verify the secure channels heading', async () => {
       await packageSourcesPage.verifySecureChannelsHeading(secureChannels);
