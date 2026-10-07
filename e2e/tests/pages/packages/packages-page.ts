@@ -1,4 +1,11 @@
-import { AssertUtils, BIG_TIMEOUT, ElementUtils, LocatorUtils, PageUtils } from '@anaconda/playwright-utils';
+import {
+  ActionUtils,
+  AssertUtils,
+  BIG_TIMEOUT,
+  ElementUtils,
+  LocatorUtils,
+  PageUtils,
+} from '@anaconda/playwright-utils';
 import { BASE_URL } from '@playwright-config';
 import { type Locator } from '@playwright/test';
 import { packagesData, secureChannels } from '@testdata/packages/packages-test-data';
@@ -14,6 +21,13 @@ export class PackagesPage {
   private readonly channelSummary = '#center-content .listing-note';
   private readonly columnHeaders = '#center-content table thead th';
   private readonly channelRows = '[data-testid="package-row"]';
+  private readonly channelNames = `${this.channelRows} .channel .name`;
+  /** Table headers expose no data attribute, so the column role plus its name (the first column) is the only handle. */
+  private readonly secureChannelHeader = (): Locator =>
+    LocatorUtils.getLocator('#center-content table').getByRole('columnheader', {
+      name: packagesData.columns[0],
+      exact: true,
+    });
   private readonly resourcesButton = (): Locator =>
     LocatorUtils.getLocatorByRole('navigation').getByRole('button', {
       name: packagesData.resourcesNavLabel,
@@ -118,5 +132,24 @@ export class PackagesPage {
       packagesData.policyResultsPattern,
       { message: `${channel.name} row should show "N files removed"` },
     );
+  }
+
+  public async clickSecureChannelHeader(): Promise<void> {
+    await ActionUtils.click(this.secureChannelHeader());
+  }
+
+  /** Secure channels are listed A→Z by name on load and after the second Secure Channel click. */
+  public async verifyChannelsSortedAscending(channels: readonly SecureChannel[]): Promise<void> {
+    await AssertUtils.expectElementToHaveText(
+      this.channelNames,
+      channels.map(channel => channel.name),
+      { message: 'Channels should be in A→Z order' },
+    );
+  }
+
+  public async verifyChannelsSortedDescending(channels: readonly SecureChannel[]): Promise<void> {
+    await AssertUtils.expectElementToHaveText(this.channelNames, channels.map(channel => channel.name).reverse(), {
+      message: 'Channels should be in Z→A order',
+    });
   }
 }

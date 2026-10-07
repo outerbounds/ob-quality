@@ -36,4 +36,19 @@ test.describe('Packages Page OB UI Tests @smoke', () => {
       });
     }
   });
+
+  // P1 — Packages > Packages List > Verify sorting by Secure Channel (descending, then ascending)
+  test('Sorting by Secure Channel orders channels descending, then ascending', async ({ packagesPage }) => {
+    await test.step('Verify the channels are listed A→Z on load', async () => {
+      await packagesPage.verifyChannelsSortedAscending(secureChannels);
+    });
+    await test.step('Click Secure Channel and verify the channels are sorted Z→A', async () => {
+      await packagesPage.clickSecureChannelHeader();
+      await packagesPage.verifyChannelsSortedDescending(secureChannels);
+    });
+    await test.step('Click Secure Channel again and verify the initial A→Z order is restored', async () => {
+      await packagesPage.clickSecureChannelHeader();
+      await packagesPage.verifyChannelsSortedAscending(secureChannels);
+    });
+  });
 });
