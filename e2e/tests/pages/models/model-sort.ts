@@ -1,4 +1,4 @@
-import { ActionUtils, AssertUtils, ElementUtils, SMALL_TIMEOUT, logger } from '@anaconda/playwright-utils';
+import { ActionUtils, AssertUtils, ElementUtils, logger } from '@anaconda/playwright-utils';
 import { ModelPage } from '@pages/models/model-page';
 import { type Locator, expect } from '@playwright/test';
 import { type CatalogSortValueKind, catalogSizeUnits } from '@testdata/models/catalog-test-data';
@@ -44,10 +44,13 @@ export class ModelSortPage extends ModelPage {
   private async sortByColumn(label: string): Promise<SortDirection> {
     const reversed = this.reverseOf(await this.readColumnSortDirection(label));
     await ActionUtils.click(this.columnHeader(label));
-    // The turned indicator marks the re-sort as taken, so the next click reads a settled column.
-    await ElementUtils.waitForElementToBeVisible(this.columnSortIndicatorInDirection(label, reversed), {
-      timeout: SMALL_TIMEOUT,
-    });
+    try {
+      // Wait for the action to settle without mixing assertions into this action method.
+      await ElementUtils.waitForElementToBeVisible(this.columnSortIndicatorInDirection(label, reversed));
+    } catch (cause) {
+      // Identify the failed sort while preserving the underlying wait error for debugging.
+      throw new Error(`Clicking the ${label} header should sort the model table ${reversed}`, { cause });
+    }
     return reversed;
   }
 
