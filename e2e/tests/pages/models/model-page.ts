@@ -389,17 +389,26 @@ export class ModelPage {
   public async scrollThroughEveryModelRow(): Promise<void> {
     this.scannedColumns = await ElementUtils.getAllTexts(this.modelTableHeaders());
     this.scannedRows.clear();
-    await this.sweepModelTable(async () => {
-      for (const modelId of await this.readRenderedModelRowIds()) {
-        if (!this.scannedRows.has(modelId)) {
-          this.scannedRows.set(modelId, await this.readModelRowCells(modelId));
+    await this.sweepModelTable(
+      async () => {
+        for (const modelId of await this.readRenderedModelRowIds()) {
+          if (!this.scannedRows.has(modelId)) {
+            this.scannedRows.set(modelId, await this.readModelRowCells(modelId));
+          }
         }
-      }
-    });
+      },
+      () => `${this.scannedRows.size} models collected`,
+    );
   }
 
-  /** Walk the table from its first row to its last, letting the caller read each rendered window. */
-  protected async sweepModelTable(readRenderedWindow: () => Promise<void>): Promise<void> {
+  /**
+   * Walk the table from its first row to its last, letting the caller read each rendered window.
+   * `describeProgress` says how far the caller's own read had got, so a stall names the row it stopped on.
+   */
+  protected async sweepModelTable(
+    readRenderedWindow: () => Promise<void>,
+    describeProgress: () => string,
+  ): Promise<void> {
     await this.scrollModelTableToTop();
     while (true) {
       // Read before the break, so the rows rendered at the bottom are collected like any other window.
@@ -412,7 +421,7 @@ export class ModelPage {
       // Short of the bottom every page has to advance, so a stalled scroll says so instead of looping away.
       expect(
         await this.readModelTableScrollTop(),
-        `Model table should scroll forward from ${previousTop}px`,
+        `Model table should scroll forward from ${previousTop}px, with ${describeProgress()}`,
       ).toBeGreaterThan(previousTop);
     }
   }
