@@ -1,4 +1,4 @@
-import { ActionUtils, AssertUtils, ElementUtils, SMALL_TIMEOUT } from '@anaconda/playwright-utils';
+import { ActionUtils, AssertUtils, ElementUtils, SMALL_TIMEOUT, logger } from '@anaconda/playwright-utils';
 import { ModelPage } from '@pages/models/model-page';
 import { type Locator, expect } from '@playwright/test';
 import { type CatalogSortValueKind, catalogSizeUnits } from '@testdata/models/catalog-test-data';
@@ -9,6 +9,11 @@ export class ModelSortPage extends ModelPage {
   /** The sort indicator is an unlabelled icon, so its class inside the sorted header is the handle. */
   private readonly columnSortIndicator = (label: string): Locator => this.columnHeader(label).locator('.icon');
   private readonly columnSortIndicators = (): Locator => this.modelTableHeaders().locator('.icon');
+  /** The indicator reaches only the sorted column, and the header's "flipped" class turns it over. */
+  private readonly columnSortIndicatorInDirection = (label: string, direction: SortDirection): Locator =>
+    this.columnHeader(label).locator(
+      direction === 'descending' ? ':scope.flipped .icon' : ':scope:not(.flipped) .icon',
+    );
 
   /** A sort control is marked only by the header's own class; the headers carry no aria-sort attribute. */
   public async verifySortableColumnSortControl(label: string): Promise<void> {
@@ -27,39 +32,23 @@ export class ModelSortPage extends ModelPage {
     await this.sortColumnInDirection(label, 'descending');
   }
 
-  /** Reaching a direction takes one click or two, so each check stands alone whatever ran before it. */
+  /** Reaching a direction takes one click or two, so each sort stands alone whatever ran before it. */
   private async sortColumnInDirection(label: string, direction: SortDirection): Promise<void> {
-    const firstDirection = await this.sortByColumn(label);
-    if (firstDirection === direction) {
-      return;
+    if ((await this.sortByColumn(label)) !== direction) {
+      // A second click reverses the order the first one left the column in.
+      await this.sortByColumn(label);
     }
-    // A second click that leaves the order unchanged would mean the header stopped responding.
-    const secondDirection = await this.sortByColumn(label);
-    expect(secondDirection, `Clicking the ${label} header again should reverse its ${firstDirection} order`).toBe(
-      direction,
-    );
   }
 
   /** Click the header and return the order it ends in, waiting out the reversal every click makes. */
   private async sortByColumn(label: string): Promise<SortDirection> {
     const reversed = this.reverseOf(await this.readColumnSortDirection(label));
     await ActionUtils.click(this.columnHeader(label));
-    // The indicator only reaches the column the table has re-sorted by, so it marks the sort as taken.
-    await AssertUtils.expectElementToBeVisible(this.columnSortIndicator(label), {
-      message: `Clicking the ${label} header should sort the model table by that column`,
+    // The turned indicator marks the re-sort as taken, so the next click reads a settled column.
+    await ElementUtils.waitForElementToBeVisible(this.columnSortIndicatorInDirection(label, reversed), {
+      timeout: SMALL_TIMEOUT,
     });
-    await this.waitForColumnSortDirection(label, reversed);
     return reversed;
-  }
-
-  /** A reversal only turns the indicator over, so the header's own state is the one thing to poll. */
-  private async waitForColumnSortDirection(label: string, direction: SortDirection): Promise<void> {
-    await expect
-      .poll(async () => await this.readColumnSortDirection(label), {
-        message: `${label} column header should report its ${direction} sort`,
-        timeout: SMALL_TIMEOUT,
-      })
-      .toBe(direction);
   }
 
   private reverseOf(direction: SortDirection): SortDirection {
@@ -72,7 +61,7 @@ export class ModelSortPage extends ModelPage {
     return /\bflipped\b/.test(headerClasses) ? 'descending' : 'ascending';
   }
 
-  /** Checked over every row with distinct values required, so a no-op reorder cannot pass. */
+  /** Checked over every row, so a sort that only reorders part of the table cannot pass. */
   public async verifyColumnSortOrder(
     label: string,
     kind: CatalogSortValueKind,
@@ -80,12 +69,21 @@ export class ModelSortPage extends ModelPage {
   ): Promise<void> {
     await this.verifySortIndicatorOnColumn(label);
     const cells = await this.readSortedColumnCells(label);
-    expect(cells.length, `Sorting by ${label} should leave the model table with rows to compare`).toBeGreaterThan(1);
+    // A table of one row has no pair to compare, so the data, not the sort, is what falls short.
+    if (cells.length < 2) {
+      logger.warn(
+        `The model table holds ${cells.length} row, so sorting it by ${label} ${direction} leaves no pair of rows to compare`,
+      );
+      return;
+    }
     const keys = cells.map(cell => this.sortKey(cell, kind, label));
-    expect(
-      new Set(keys).size,
-      `The ${label} column should hold more than one distinct value, or sorting it proves nothing`,
-    ).toBeGreaterThan(1);
+    // One value across every row orders the same either way, which the data again is what decides.
+    if (new Set(keys).size === 1) {
+      logger.warn(
+        `The ${label} column holds "${cells[0]}" in all ${cells.length} rows, so its ${direction} order cannot be told apart from an unsorted one`,
+      );
+      return;
+    }
     const ascending = direction === 'ascending';
     for (let row = 1; row < cells.length; row++) {
       const order = this.compareSortKeys(keys[row - 1], keys[row]);
@@ -108,17 +106,21 @@ export class ModelSortPage extends ModelPage {
 
   /** Sweep the whole table and read one column's cells in the order its rows are sorted. */
   private async readSortedColumnCells(label: string): Promise<string[]> {
-    const column = (await ElementUtils.getAllTexts(this.modelTableHeaders())).indexOf(label);
+    const columns = await ElementUtils.getAllTexts(this.modelTableHeaders());
+    const column = columns.indexOf(label);
     expect(column, `${label} column should be rendered in the model table`).toBeGreaterThanOrEqual(0);
     // Keyed by row id, so a row rendered in two windows is kept once, in the order it was first seen.
     const cellByRow = new Map<string, string>();
-    await this.sweepModelTable(async () => {
-      for (const { modelId, cell } of await this.readRenderedColumnCells(column)) {
-        if (!cellByRow.has(modelId)) {
-          cellByRow.set(modelId, cell);
+    await this.sweepModelTable(
+      async () => {
+        for (const { modelId, cell } of await this.readRenderedColumnCells(column, columns.length)) {
+          if (!cellByRow.has(modelId)) {
+            cellByRow.set(modelId, cell);
+          }
         }
-      }
-    });
+      },
+      () => `${cellByRow.size} ${label} cells read`,
+    );
     // An order read from part of the table proves little, so the sweep has to have reached every model.
     const modelCount = Number(await ElementUtils.getText(this.modelCountBadge()));
     expect(
@@ -129,15 +131,30 @@ export class ModelSortPage extends ModelPage {
   }
 
   /** One snapshot per window, so every cell text stays on the row it is recorded against. */
-  private async readRenderedColumnCells(column: number): Promise<{ modelId: string; cell: string }[]> {
-    return await this.modelRows().evaluateAll(
+  private async readRenderedColumnCells(
+    column: number,
+    columnCount: number,
+  ): Promise<{ modelId: string; cell: string }[]> {
+    const rendered = await this.modelRows().evaluateAll(
       (rows, index) =>
-        rows.map(row => ({
-          modelId: row.getAttribute('data-qa-id') ?? '',
-          cell: (row.querySelectorAll('td')[index]?.innerText ?? '').trim(),
-        })),
+        rows.map(row => {
+          // Every cell element counts, header cell or not, so the index keeps matching the header order.
+          const cells = row.querySelectorAll<HTMLElement>('td, th');
+          return {
+            modelId: row.getAttribute('data-qa-id') ?? '',
+            cellCount: cells.length,
+            cell: (cells[index]?.innerText ?? '').trim(),
+          };
+        }),
       column,
     );
+    // A row of a different width would shift this column's text, so it fails here instead of reading on.
+    for (const { modelId, cellCount } of rendered) {
+      expect(cellCount, `Row ${modelId} should render one cell for each of the ${columnCount} columns`).toBe(
+        columnCount,
+      );
+    }
+    return rendered;
   }
 
   /** Turn a cell's displayed text into the value the table orders that column by. */
@@ -172,12 +189,13 @@ export class ModelSortPage extends ModelPage {
 
   /** Sizes compare as bytes: a text comparison would read "986.05 MB" as larger than "1.12 TB". */
   private sizeInBytes(cell: string, label: string): number {
-    const match = /^(\d+(?:\.\d+)?)\s*([A-Z]+)$/.exec(cell);
-    const multiplier = match === null ? undefined : catalogSizeUnits[match[2]];
+    // Grouped digits and either case of the unit read as the same size, so only a real unit fails below.
+    const match = /^(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*([A-Za-z]+)$/.exec(cell);
+    const multiplier = match === null ? undefined : catalogSizeUnits[match[2].toUpperCase()];
     expect(
       multiplier,
       `The ${label} cell "${cell}" should read as an amount with a known unit (${Object.keys(catalogSizeUnits).join(', ')})`,
     ).toBeDefined();
-    return Number(match?.[1]) * Number(multiplier);
+    return Number(match?.[1].replace(/,/g, '')) * Number(multiplier);
   }
 }

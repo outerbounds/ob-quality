@@ -48,9 +48,12 @@ export const catalogFixedColumn = 'Name';
  */
 export type CatalogSortValueKind = 'text' | 'date' | 'size' | 'count';
 
+/** Every column the model table can render: the optional ones plus the fixed one. */
+export type CatalogColumn = (typeof catalogColumnOptions)[number] | typeof catalogFixedColumn;
+
 export type CatalogSortableColumn = {
-  /** The column header's accessible name. */
-  label: string;
+  /** The column header's accessible name, taken from the columns above so a rename cannot drift. */
+  label: CatalogColumn;
   kind: CatalogSortValueKind;
 };
 
